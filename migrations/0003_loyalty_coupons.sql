@@ -1,9 +1,24 @@
 -- ============================================================================
---  VIGORWOLF — upgrade an EXISTING database with loyalty + coupons (0003)
---  Safe to run once on a database created before these features existed.
---  Run:  npm run db:upgrade:local   /   npm run db:upgrade:remote
---  (A fresh `npm run db:remote` already includes everything — this is only for
---   databases that were seeded from the original 0001 schema.)
+--  VIGORWOLF — 0003 "ensure loyalty + coupons" (SAFE / IDEMPOTENT)
+--  ----------------------------------------------------------------------------
+--  IMPORTANT: The full loyalty/coupon/shipping schema now lives in
+--  0001_init.sql. If you seeded your database with `npm run db:remote`
+--  (or db:local), you ALREADY HAVE everything and do NOT need this file.
+--
+--  This migration is now only a safety net: it re-creates the loyalty/coupon
+--  TABLES if they are somehow missing, and re-seeds the sample coupon.
+--  Every statement uses IF NOT EXISTS / OR IGNORE, so it can be run any number
+--  of times without error and without touching existing data.
+--
+--  Run (optional, safe):
+--    npm run db:upgrade:remote     /     npm run db:upgrade:local
+--
+--  NOTE ON COLUMNS: SQLite/D1 does NOT support
+--  `ALTER TABLE ... ADD COLUMN IF NOT EXISTS`, so we do NOT ALTER here (that is
+--  what caused the "duplicate column name: coupon_code" error). The order
+--  columns are part of 0001_init.sql. If you are migrating a very old database
+--  that predates those columns, see migrations/0004_add_order_columns.sql and
+--  run only the lines your schema is actually missing.
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS users (
@@ -37,15 +52,6 @@ CREATE TABLE IF NOT EXISTS coupons (
   expires_at       TEXT DEFAULT '',
   created_at       TEXT NOT NULL DEFAULT (datetime('now'))
 );
-
--- New order columns (SQLite ignores errors only if you guard; run once).
-ALTER TABLE orders ADD COLUMN coupon_code TEXT DEFAULT '';
-ALTER TABLE orders ADD COLUMN coupon_discount_jd REAL NOT NULL DEFAULT 0;
-ALTER TABLE orders ADD COLUMN points_redeemed INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE orders ADD COLUMN points_discount_jd REAL NOT NULL DEFAULT 0;
-ALTER TABLE orders ADD COLUMN points_earned INTEGER NOT NULL DEFAULT 0;
-ALTER TABLE orders ADD COLUMN shipping_jd REAL NOT NULL DEFAULT 0;
-ALTER TABLE orders ADD COLUMN total_after_discounts REAL NOT NULL DEFAULT 0;
 
 INSERT OR IGNORE INTO coupons (code, type, value, active, min_order_amount, max_uses, expires_at)
 VALUES ('PACK10', 'percentage', 10, 1, 20, 0, '');

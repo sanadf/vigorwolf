@@ -18,9 +18,9 @@ compatibility_flags = ["nodejs_compat"]
 # --- D1 database binding -----------------------------------------------------
 # The code refers to this database as `env.DB`.
 [[d1_databases]]
-binding = "DB"
+binding = "vigorwolf_db"
 database_name = "vigorwolf-db"
-database_id = "PASTE_YOUR_D1_DATABASE_ID_HERE"
+database_id = "9deb43a7-fb8e-4a4a-ab40-4771aa62f66a"
 
 # --- Environment variables (safe defaults; secrets set in dashboard) ---------
 # These non-secret vars can live here. SECRETS (email keys, session secret)
