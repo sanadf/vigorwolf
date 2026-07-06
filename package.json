@@ -4,6 +4,7 @@
   "private": true,
   "description": "VIGORWOLF — premium dark streetwear / gymwear limited-drop store. Cloudflare Pages + Functions + D1.",
   "scripts": {
+    "build": "echo 'VIGORWOLF is a static site served from public/ — no build step needed.'",
     "dev": "wrangler pages dev public --compatibility-date=2024-11-01 --compatibility-flags=nodejs_compat",
     "db:local": "wrangler d1 execute vigorwolf-db --local --file=./migrations/0001_init.sql",
     "db:remote": "wrangler d1 execute vigorwolf-db --remote --file=./migrations/0001_init.sql",
