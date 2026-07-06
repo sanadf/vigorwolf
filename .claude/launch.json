@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "vigorwolf",
-      "runtimeExecutable": "npx",
-      "runtimeArgs": ["wrangler", "pages", "dev", "public", "--compatibility-date=2024-11-01", "--compatibility-flags=nodejs_compat", "--port", "8790"],
+      "runtimeExecutable": "node_modules/.bin/wrangler",
+      "runtimeArgs": ["pages", "dev", "public", "--compatibility-date=2024-11-01", "--compatibility-flags=nodejs_compat", "--port", "8790"],
       "port": 8790
     }
   ]
