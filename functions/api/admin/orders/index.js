@@ -36,7 +36,7 @@ export async function onRequestGet(context) {
         subtotal: o.subtotal, total: o.total, createdAt: o.created_at,
         couponCode: o.coupon_code, couponDiscount: o.coupon_discount_jd,
         pointsRedeemed: o.points_redeemed, pointsDiscount: o.points_discount_jd, pointsEarned: o.points_earned,
-        shipping: o.shipping_jd,
+        shipping: o.shipping_jd, emailStatus: o.email_status || "",
         items: (items.results || []).map((i) => ({
           name: i.name, price: i.price, size: i.size, color: i.color, qty: i.qty, image: i.image_url,
         })),

@@ -72,6 +72,7 @@ CREATE TABLE IF NOT EXISTS orders (
   points_earned         INTEGER NOT NULL DEFAULT 0,
   shipping_jd           REAL NOT NULL DEFAULT 0,
   total_after_discounts REAL NOT NULL DEFAULT 0,
+  email_status   TEXT DEFAULT '',          -- notification result: sent:resend | failed:... | skipped
   created_at     TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

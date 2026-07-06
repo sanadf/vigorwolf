@@ -89,6 +89,9 @@
           <div class="summary-row"><span>Shipping (${ADMIN.esc(o.city)})</span><span>${ADMIN.money(o.shipping)}</span></div>
           <div class="summary-row summary-row--total"><span>Total · ${ADMIN.esc(o.paymentMethod)}</span><span>${ADMIN.money(o.total)}</span></div>
           ${o.pointsEarned > 0 ? `<p class="mono mt-8" style="color:var(--green)">◆ ${o.pointsEarned} points earned on this order</p>` : ""}
+          <p class="mono mt-8" style="font-size:.74rem;color:${(o.emailStatus||'').startsWith('sent') ? 'var(--green)' : 'var(--muted-2)'}">
+            ✉ Notification: ${o.emailStatus ? ADMIN.esc(o.emailStatus) : "—"}
+          </p>
           <div class="divider"></div>
           <div class="field"><label>Update Status</label>
             <select class="select" data-set-status>

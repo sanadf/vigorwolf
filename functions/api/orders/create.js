@@ -127,34 +127,65 @@ export async function onRequestPost(context) {
         .bind(newBalance, c.name, userId).run();
     }
 
-    // Email notification (optional / non-blocking)
-    const lines = resolved.map(i => `- ${i.name} [${i.size}/${i.color}] x${i.qty} = ${(i.price * i.qty).toFixed(2)} JD`).join("\n");
-    const discountLines =
-      (couponDiscount ? `Coupon (${couponCode}): -${couponDiscount.toFixed(2)} JD\n` : "") +
-      (pointsDiscount ? `Points (${redeemPoints}): -${pointsDiscount.toFixed(2)} JD\n` : "");
-    context.waitUntil(sendNotification(env, {
-      subject: `VIGORWOLF — new order ${number} (${total.toFixed(2)} JD)`,
-      text:
-`New order received.
+    // ----- Email notification -------------------------------------------------
+    // The order is already saved above. Email is sent AFTER saving and must NEVER
+    // fail the order: any error is caught and logged, checkout still succeeds.
+    const createdAt = new Date().toISOString().replace("T", " ").slice(0, 16) + " UTC";
+    const itemLines = resolved.map((i) => {
+      const opt = [i.size, i.color].filter(Boolean).join(" / ");
+      return `- ${i.name}${opt ? ` — ${opt}` : ""} — x${i.qty} — ${(i.price * i.qty).toFixed(2)} JD`;
+    }).join("\n");
+    const totalsLines = [
+      `Subtotal:          ${subtotal.toFixed(2)} JD`,
+      couponDiscount ? `Coupon (${couponCode}):    -${couponDiscount.toFixed(2)} JD` : null,
+      pointsDiscount ? `Points (${redeemPoints}):       -${pointsDiscount.toFixed(2)} JD` : null,
+      `Delivery (${governorate}): ${shipping.toFixed(2)} JD`,
+      `TOTAL:             ${total.toFixed(2)} JD`,
+    ].filter(Boolean).join("\n");
 
-Order: ${number}
-Name: ${c.name}
-Phone: ${phone}
-Email: ${c.email}
-Governorate: ${governorate}, Jordan
-Address: ${c.address}
-Notes: ${c.notes || "-"}
-Payment: ${paymentMethod}
+    const emailText =
+`NEW ORDER — VIGORWOLF
 
-Items:
-${lines}
+Order:    ${number}
+Date:     ${createdAt}
+Payment:  ${paymentMethod}
+Status:   Pending
 
-Subtotal: ${subtotal.toFixed(2)} JD
-${discountLines}Shipping (${governorate}): ${shipping.toFixed(2)} JD
-Total: ${total.toFixed(2)} JD
-${loggedIn ? `Points earned: ${pointsEarned} · New balance: ${newBalance}` : "Guest order (no points)"}`,
-      replyTo: String(c.email).trim(),
-    }));
+CUSTOMER
+Name:     ${c.name}
+Phone:    ${phone}
+Email:    ${c.email}
+
+DELIVERY (Jordan only)
+Governorate: ${governorate}
+Address:     ${c.address}
+Notes:       ${c.notes || "-"}
+
+ITEMS
+${itemLines}
+
+TOTALS
+${totalsLines}
+${loggedIn ? `\nLoyalty: earned ${pointsEarned} pts · new balance ${newBalance}` : ""}`;
+
+    let emailStatus = "skipped";
+    try {
+      const r = await sendNotification(env, {
+        subject: `VIGORWOLF — New COD order ${number} (${total.toFixed(2)} JD)`,
+        text: emailText,
+        replyTo: String(c.email).trim(),
+      });
+      emailStatus = r.sent ? `sent:${r.provider}` : `failed:${r.provider || r.error || "not configured"}`;
+    } catch (err) {
+      emailStatus = "failed:" + String(err.message || err).slice(0, 140);
+      console.error("[order] email notification threw:", err);
+    }
+    // Record the result on the order (defensive: column may not exist on an old DB).
+    try {
+      await env.DB.prepare("UPDATE orders SET email_status = ? WHERE id = ?").bind(emailStatus, orderId).run();
+    } catch (e) {
+      console.warn("[order] could not store email_status (run migration 0005?):", String(e.message || e));
+    }
 
     return ok({
       orderNumber: number,
