@@ -6,7 +6,7 @@
   <title>Dashboard — VIGORWOLF Admin</title>
   <meta name="robots" content="noindex">
   <link rel="icon" href="/assets/media/logo-red.png">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=3">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=4">
 </head>
 <body>
   <div class="admin-shell">
@@ -17,9 +17,13 @@
           <button class="admin-menu-btn" data-admin-menu aria-label="Menu">☰</button>
           <h1>Dashboard</h1>
         </div>
-        <span class="eyebrow eyebrow--plain" data-admin-email></span>
+        <div class="flex center gap-16 wrap">
+          <button class="btn btn--sm btn--ghost" data-test-email>Send test email</button>
+          <span class="eyebrow eyebrow--plain" data-admin-email></span>
+        </div>
       </div>
 
+      <p class="signup-msg mb-16" data-email-msg></p>
       <div class="stat-grid" data-stats><p class="text-muted">Loading…</p></div>
 
       <h2 class="display mb-16" style="font-size:1.4rem">Latest Orders</h2>
@@ -32,12 +36,26 @@
     </main>
   </div>
 
-  <script src="/assets/js/config.js?v=3"></script>
-  <script src="/assets/js/api.js?v=3"></script>
-  <script src="/assets/js/admin.js?v=3"></script>
+  <script src="/assets/js/config.js?v=4"></script>
+  <script src="/assets/js/api.js?v=4"></script>
+  <script src="/assets/js/admin.js?v=4"></script>
   <script>
     ADMIN.guard("dashboard.html", async (me) => {
       document.querySelector("[data-admin-email]").textContent = me.email;
+
+      // Test email button
+      const emailMsg = document.querySelector("[data-email-msg]");
+      document.querySelector("[data-test-email]").addEventListener("click", async (e) => {
+        e.target.setAttribute("data-loading", "1"); e.target.disabled = true;
+        emailMsg.textContent = "";
+        try {
+          const r = await API.admin.testEmail();
+          emailMsg.textContent = `Provider: ${r.provider} → ${r.sent ? "SENT ✓ " : "NOT SENT — "}${r.hint}`;
+          emailMsg.setAttribute("data-type", r.sent ? "ok" : "err");
+        } catch (ex) {
+          emailMsg.textContent = ex.message; emailMsg.setAttribute("data-type", "err");
+        } finally { e.target.removeAttribute("data-loading"); e.target.disabled = false; }
+      });
       try {
         const { stats, latestOrders } = await API.admin.stats();
         const cards = [

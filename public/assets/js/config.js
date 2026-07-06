@@ -11,10 +11,24 @@ window.VW_CONFIG = {
   // The admin area lives at /admin (kept low-key in the UI).
   adminPath: "/admin/",
 
-  // Shipping fees (JD). Amman is cheaper; everywhere else pays "other".
-  // These are for DISPLAY at checkout — the server recomputes the real fee in
-  // functions/api/_lib/shipping.js (edit both if you change the rates).
-  shipping: { amman: 2, other: 3 },
+  // Delivery: Jordan only. Governorate list + fees are for DISPLAY at checkout;
+  // the server recomputes the real fee and validates the governorate in
+  // functions/api/_lib/shipping.js (edit BOTH if you change the rates).
+  country: "Jordan",
+  governorates: [
+    { value: "Amman",        label: "Amman (عمّان)",          fee: 2 },
+    { value: "Zarqa",        label: "Zarqa (الزرقاء)",         fee: 3 },
+    { value: "Irbid",        label: "Irbid (إربد)",            fee: 3 },
+    { value: "Balqa (Salt)", label: "Balqa / Salt (البلقاء)",  fee: 3 },
+    { value: "Madaba",       label: "Madaba (مادبا)",          fee: 3 },
+    { value: "Jerash",       label: "Jerash (جرش)",            fee: 3 },
+    { value: "Ajloun",       label: "Ajloun (عجلون)",          fee: 3 },
+    { value: "Mafraq",       label: "Mafraq (المفرق)",         fee: 3 },
+    { value: "Karak",        label: "Karak (الكرك)",           fee: 3 },
+    { value: "Tafileh",      label: "Tafileh (الطفيلة)",       fee: 3 },
+    { value: "Ma'an",        label: "Ma'an (معان)",            fee: 3 },
+    { value: "Aqaba",        label: "Aqaba (العقبة)",          fee: 3 },
+  ],
 
   // Optional Shopify integration. If enabled, the main "Shop the Drop" / "Shop Now"
   // buttons point to your Shopify store instead of the built-in shop.

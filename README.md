@@ -165,25 +165,32 @@ You now pay **only the yearly domain fee**. Pages hosting + Functions + D1 stay 
 
 ---
 
-## 4) Turn on order emails (optional)
+## 4) Turn on order emails
 
-Orders **always** save to D1 and show in **Admin → Orders**. To also get an email at
-`vigorwolf1@gmail.com` on each order/contact/signup, add one provider's key.
+Orders **always** save to D1 first and show in **Admin → Orders** — email is sent *after*
+saving and never blocks checkout (failures are logged, order still succeeds). To receive an
+email at `vigorwolf1@gmail.com` on each order/contact/signup, set a provider.
 
-In **Pages → Settings → Variables and Secrets** add:
+In **Cloudflare → Pages → your project → Settings → Variables and Secrets**, add exactly:
 
-**Option A — Web3Forms (simplest, free):**
-1. Get a free access key at <https://web3forms.com> (enter your email, copy the key).
-2. Set variable `EMAIL_PROVIDER` = `web3forms`
-3. Set secret `WEB3FORMS_KEY` = *your key*
+**Option A — Web3Forms (simplest, free, no domain needed — recommended):**
+| Name | Type | Value |
+|------|------|-------|
+| `EMAIL_PROVIDER` | Variable | `web3forms` |
+| `WEB3FORMS_KEY` | Secret | your key from <https://web3forms.com> (use `vigorwolf1@gmail.com` when creating it) |
+| `NOTIFY_EMAIL` | Variable | `vigorwolf1@gmail.com` (already in wrangler.toml) |
 
-**Option B — Resend (free tier, needs a domain to send from your address):**
-1. Create a key at <https://resend.com>.
-2. Set `EMAIL_PROVIDER` = `resend`, secret `RESEND_API_KEY` = *your key*,
-   variable `RESEND_FROM` = `VIGORWOLF <orders@yourdomain.com>`.
+**Option B — Resend:**
+| Name | Type | Value |
+|------|------|-------|
+| `EMAIL_PROVIDER` | Variable | `resend` |
+| `RESEND_API_KEY` | Secret | your key from <https://resend.com> |
+| `RESEND_FROM` | Variable | `VIGORWOLF <orders@yourdomain.com>` (must be a Resend-verified sender; the default `onboarding@resend.dev` can only email your own Resend account address) |
 
-Also set the secret **`SESSION_SECRET`** to a long random string (used to sign admin sessions).
-Redeploy after adding variables. To notify a different address, change `NOTIFY_EMAIL` in `wrangler.toml`.
+Also add the secret **`SESSION_SECRET`** (a long random string — signs admin sessions).
+
+**After adding variables, redeploy**, then go to **Admin → Dashboard → "Send test email"** to
+confirm delivery. The button reports the provider result and tells you what's missing if it fails.
 
 ---
 
@@ -191,8 +198,8 @@ Redeploy after adding variables. To notify a different address, change `NOTIFY_E
 
 | # | What | Where |
 |---|------|-------|
-| 5 | **Admin email / password** | Set `ADMIN_EMAIL` (wrangler.toml) and the `ADMIN_PASSWORD` secret in the dashboard. Logging in once with these **auto-creates/repairs** the admin account — so a wrong/empty DB can't lock you out. Defaults: `admin@vigorwolf.com` / `VigorWolfAdmin123`. |
-| 5b | **Shipping fees** | `functions/api/_lib/shipping.js` (server truth) + `shipping` in `public/assets/js/config.js` (checkout display). Amman = 2 JD, other = 3 JD. |
+| 5 | **Admin email / password** | Best: run `npm run admin:reset:remote -- you@brand.com "YourStrongPass"` to set one working admin in production D1 (PBKDF2-hashed, no plaintext). Also self-heals: logging in with `ADMIN_EMAIL` + `ADMIN_PASSWORD` (defaults `admin@vigorwolf.com` / `VigorWolfAdmin123`) auto-creates/repairs the account so an empty DB can't lock you out. |
+| 5b | **Delivery (Jordan only)** | Governorate list + fees in `functions/api/_lib/shipping.js` (server truth) and `governorates` in `public/assets/js/config.js` (checkout dropdown). Amman = 2 JD, all other governorates = 3 JD; non-Jordan is rejected. Fees are computed server-side and cannot be changed from the browser. |
 | 5c | **Coupons** | Fully managed in **Admin → Coupons** — add, edit the discount rate, deactivate, or delete, with min-order / expiry / usage limits. |
 | 6 | **Products** | Easiest: **Admin → Products** (add/edit/delete, price, sizes, colors, stock, status, image URL, etc.). Or edit the seed in `migrations/0001_init.sql`. |
 | 7 | **Brand colors** | `public/assets/css/styles.css` → the `:root { --bg / --surface / --red / ... }` block at the top. |

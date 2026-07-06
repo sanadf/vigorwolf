@@ -8,7 +8,8 @@ import { sendNotification } from "../_lib/email.js";
 import {
   validateCoupon, getBalance, ensureUser, pointsToJd, earnedPointsFor, round2,
 } from "../_lib/loyalty.js";
-import { shippingFor } from "../_lib/shipping.js";
+import { resolveShipping } from "../_lib/shipping.js";
+import { normalizePhone, isValidPhone } from "../_lib/phone.js";
 
 function orderNumber() {
   const d = new Date();
@@ -27,10 +28,17 @@ export async function onRequestPost(context) {
   // --- validation ---
   if (!c.name || !String(c.name).trim()) return fail("Full name is required.");
   if (!c.phone || !String(c.phone).trim()) return fail("Phone number is required.");
+  const phone = normalizePhone(c.phone, "JO");
+  if (!isValidPhone(phone)) return fail("Enter a valid phone number in international format, e.g. +962791234567.");
   if (!isEmail(c.email)) return fail("A valid email is required.");
-  if (!c.city || !String(c.city).trim()) return fail("City is required.");
   if (!c.address || !String(c.address).trim()) return fail("Full address is required.");
   if (items.length === 0) return fail("Your cart is empty.");
+
+  // Jordan-only delivery. Governorate must be an approved value; fee is computed
+  // server-side and cannot be manipulated by the browser.
+  const ship = resolveShipping(c.city);
+  if (!ship.valid) return fail("Delivery is currently available inside Jordan only.");
+  const governorate = ship.value; // canonical governorate stored on the order
 
   try {
     // 1) Resolve items -> trusted subtotal
@@ -67,7 +75,7 @@ export async function onRequestPost(context) {
     }
 
     // 4) Shipping (added after discounts) + final total
-    const shipping = shippingFor(c.city);
+    const shipping = ship.fee;
     const total = round2(afterCoupon - pointsDiscount + shipping);
     // 5) Points earned (from subtotal before discounts, logged-in only)
     const pointsEarned = loggedIn ? earnedPointsFor(subtotal) : 0;
@@ -81,8 +89,8 @@ export async function onRequestPost(context) {
         coupon_code, coupon_discount_jd, points_redeemed, points_discount_jd, points_earned, shipping_jd, total_after_discounts)
        VALUES (?,?,?,?,?,?,?,?,'Pending',?,?,?,?,?,?,?,?,?,?)`
     ).bind(
-      number, String(c.name).trim(), String(c.phone).trim(), String(c.email).trim().toLowerCase(),
-      String(c.city).trim(), String(c.address).trim(), String(c.notes || "").trim(),
+      number, String(c.name).trim(), phone, String(c.email).trim().toLowerCase(),
+      governorate, String(c.address).trim(), String(c.notes || "").trim(),
       paymentMethod, subtotal, total, userEmail,
       couponCode, couponDiscount, redeemPoints, pointsDiscount, pointsEarned, shipping, total
     ).run();
@@ -131,9 +139,9 @@ export async function onRequestPost(context) {
 
 Order: ${number}
 Name: ${c.name}
-Phone: ${c.phone}
+Phone: ${phone}
 Email: ${c.email}
-City: ${c.city}
+Governorate: ${governorate}, Jordan
 Address: ${c.address}
 Notes: ${c.notes || "-"}
 Payment: ${paymentMethod}
@@ -142,7 +150,7 @@ Items:
 ${lines}
 
 Subtotal: ${subtotal.toFixed(2)} JD
-${discountLines}Shipping (${c.city}): ${shipping.toFixed(2)} JD
+${discountLines}Shipping (${governorate}): ${shipping.toFixed(2)} JD
 Total: ${total.toFixed(2)} JD
 ${loggedIn ? `Points earned: ${pointsEarned} · New balance: ${newBalance}` : "Guest order (no points)"}`,
       replyTo: String(c.email).trim(),
@@ -151,8 +159,8 @@ ${loggedIn ? `Points earned: ${pointsEarned} · New balance: ${newBalance}` : "G
     return ok({
       orderNumber: number,
       order: {
-        orderNumber: number, customerName: c.name, phone: c.phone, email: c.email,
-        city: c.city, address: c.address, notes: c.notes || "", paymentMethod,
+        orderNumber: number, customerName: c.name, phone, email: c.email,
+        city: governorate, address: c.address, notes: c.notes || "", paymentMethod,
         status: "Pending", subtotal, couponCode, couponDiscount,
         pointsRedeemed: redeemPoints, pointsDiscount, pointsEarned, shipping, total, items: resolved,
       },

@@ -49,6 +49,7 @@
       createCoupon: (c) => request("/api/admin/coupons", { method: "POST", body: JSON.stringify(c) }),
       updateCoupon: (id, c) => request(`/api/admin/coupons/${id}`, { method: "PATCH", body: JSON.stringify(c) }),
       deleteCoupon: (id) => request(`/api/admin/coupons/${id}`, { method: "DELETE" }),
+      testEmail: () => request("/api/admin/test-email", { method: "POST" }),
       loyaltyTransactions: () => request("/api/admin/loyalty-transactions"),
       users: () => request("/api/admin/users"),
       adjustPoints: (id, points, note) => request(`/api/admin/users/${id}/points`, { method: "PATCH", body: JSON.stringify({ points, note }) }),

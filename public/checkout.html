@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Checkout — VIGORWOLF</title>
   <link rel="icon" href="/assets/media/logo-red.png">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=3">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=4">
 </head>
 <body>
   <header id="site-header"></header>
@@ -20,14 +20,25 @@
             <h3 class="display mb-16" style="font-size:1.3rem">Delivery Details</h3>
             <div class="form-2col">
               <div class="field"><label>Full Name <span class="req">*</span></label><input class="input" name="name" required></div>
-              <div class="field"><label>Phone <span class="req">*</span></label><input class="input" name="phone" type="tel" required></div>
+              <div class="field">
+                <label>Phone <span class="req">*</span></label>
+                <input class="input" name="phone" type="tel" inputmode="tel" placeholder="+962 7 9123 4567" autocomplete="tel" required>
+                <p class="form-note" style="font-size:.72rem;margin-top:5px">International format, e.g. +962791234567</p>
+              </div>
             </div>
             <div class="form-2col">
-              <div class="field"><label>Email <span class="req">*</span></label><input class="input" name="email" type="email" required></div>
-              <div class="field"><label>City <span class="req">*</span></label><input class="input" name="city" required></div>
+              <div class="field"><label>Email <span class="req">*</span></label><input class="input" name="email" type="email" autocomplete="email" required></div>
+              <div class="field"><label>Country</label><input class="input" name="country" value="Jordan" readonly aria-readonly="true" style="opacity:.7;cursor:not-allowed"></div>
             </div>
-            <div class="field"><label>Full Address <span class="req">*</span></label><input class="input" name="address" required></div>
-            <div class="field"><label>Order Notes</label><textarea class="textarea" name="notes" placeholder="Landmark, delivery time, size notes…"></textarea></div>
+            <div class="form-2col">
+              <div class="field">
+                <label>Governorate <span class="req">*</span></label>
+                <select class="select" name="city" data-gov required aria-label="Governorate"><option value="">Select governorate…</option></select>
+              </div>
+              <div class="field"><label>Area / District</label><input class="input" name="area" placeholder="e.g. Abdoun, Sweifieh…" autocomplete="address-level2"></div>
+            </div>
+            <div class="field"><label>Full Address <span class="req">*</span></label><input class="input" name="address" placeholder="Street, building, floor, nearest landmark" autocomplete="street-address" required></div>
+            <div class="field"><label>Order Notes</label><textarea class="textarea" name="notes" placeholder="Delivery time, extra instructions…"></textarea></div>
 
             <h3 class="display mt-24 mb-16" style="font-size:1.3rem">Payment</h3>
             <label class="checkline" style="border:1px solid var(--accent);background:var(--accent-dim);padding:14px;border-radius:var(--radius)">
@@ -83,10 +94,10 @@
   </main>
   <footer id="site-footer"></footer>
 
-  <script src="/assets/js/config.js?v=3"></script>
-  <script src="/assets/js/api.js?v=3"></script>
-  <script src="/assets/js/store.js?v=3"></script>
-  <script src="/assets/js/ui.js?v=3"></script>
+  <script src="/assets/js/config.js?v=4"></script>
+  <script src="/assets/js/api.js?v=4"></script>
+  <script src="/assets/js/store.js?v=4"></script>
+  <script src="/assets/js/ui.js?v=4"></script>
   <script>
     (async function () {
       const form = document.querySelector("[data-checkout]");
@@ -106,17 +117,27 @@
 
       const state = { couponCode: "", couponDiscount: 0, redeemPoints: 0, pointsDiscount: 0, balance: 0 };
       const afterCoupon = () => round2(subtotal - state.couponDiscount);
-      // Shipping: Amman is cheaper, everywhere else pays "other". Recomputed live from the City field.
-      const rates = VW_CONFIG.shipping || { amman: 2, other: 3 };
-      const shipping = () => {
-        const c = (form.city.value || "").trim().toLowerCase();
-        return (c.includes("amman") || c.includes("عمان")) ? rates.amman : rates.other;
-      };
+
+      // --- Jordan-only delivery: populate governorate dropdown (fees from config) ---
+      const govs = VW_CONFIG.governorates || [];
+      govs.forEach(g => form.city.insertAdjacentHTML("beforeend", `<option value="${g.value}">${g.label} — ${g.fee} JD</option>`));
+      const selectedGov = () => govs.find(g => g.value === form.city.value) || null;
+      const shipping = () => { const g = selectedGov(); return g ? g.fee : 0; };
       const total = () => round2(afterCoupon() - state.pointsDiscount + shipping());
 
+      // --- phone normalization (mirror of server-side E.164 logic) ---
+      function normalizePhone(raw) {
+        let s = String(raw || "").trim().replace(/[\s()\-.]/g, "");
+        if (s.startsWith("00")) s = "+" + s.slice(2);
+        if (/^07\d{8}$/.test(s)) s = "+962" + s.slice(1);        // Jordan local mobile
+        if (!s.startsWith("+") && /^\d{8,15}$/.test(s)) s = "+" + s;
+        return s;
+      }
+      const isValidPhone = (p) => /^\+[1-9]\d{7,14}$/.test(p);
+
       function renderSummary() {
-        const c = (form.city.value || "").trim();
-        const shipLabel = c ? (shipping() === rates.amman ? "Amman" : c) : "enter city";
+        const g = selectedGov();
+        const shipLabel = g ? g.value : "select governorate";
         let rows = `<h3 class="display" style="font-size:1.3rem">Your Order</h3>
           <div class="mt-16">${items.map(i => `
             <div class="summary-row"><span>${i.name} <span style="color:var(--muted-2)">×${i.qty} · ${i.size}/${i.color}</span></span><span>${money(i.price*i.qty)}</span></div>`).join("")}</div>
@@ -125,20 +146,21 @@
           rows += `<div class="summary-row"><span>Coupon (${state.couponCode})</span><span>− ${money(state.couponDiscount)}</span></div>`;
         if (state.pointsDiscount > 0)
           rows += `<div class="summary-row"><span>Points (${state.redeemPoints})</span><span>− ${money(state.pointsDiscount)}</span></div>`;
-        rows += `<div class="summary-row"><span>Shipping <span style="color:var(--muted-2)">(${shipLabel})</span></span><span>${money(shipping())}</span></div>`;
+        rows += `<div class="summary-row"><span>Delivery <span style="color:var(--muted-2)">(${shipLabel})</span></span><span>${g ? money(shipping()) : "—"}</span></div>`;
         rows += `<div class="summary-row summary-row--total"><span>Total</span><span>${money(total())}</span></div>`;
         summaryEl.innerHTML = rows;
       }
       renderSummary();
-      // Recompute shipping/total whenever the city changes.
-      form.city.addEventListener("input", renderSummary);
+      form.city.addEventListener("change", renderSummary);
 
       const profile = VW.User.profile();
       if (profile) {
         form.name.value = profile.name || ""; form.email.value = profile.email || "";
-        form.phone.value = profile.phone || ""; form.city.value = profile.city || "";
+        form.phone.value = profile.phone || "";
+        // Only pre-select the governorate if it matches an approved value.
+        if (govs.some(g => g.value === profile.city)) form.city.value = profile.city;
         form.address.value = profile.address || "";
-        renderSummary(); // reflect prefilled city in shipping
+        renderSummary();
       }
 
       if (user) {
@@ -193,17 +215,28 @@
 
       form.addEventListener("submit", async (e) => {
         e.preventDefault(); errEl.textContent = "";
-        const required = ["name", "phone", "email", "city", "address"];
-        if (required.some(k => !form[k].value.trim())) { errEl.textContent = "Please fill all required fields."; return; }
+        if (!form.name.value.trim() || !form.email.value.trim() || !form.address.value.trim()) {
+          errEl.textContent = "Please fill all required fields."; return;
+        }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.value.trim())) { errEl.textContent = "Enter a valid email."; return; }
+        // Jordan-only governorate
+        if (!selectedGov()) { errEl.textContent = "Please select your governorate. Delivery is inside Jordan only."; form.city.focus(); return; }
+        // Phone: normalize to E.164 + validate
+        const phone = normalizePhone(form.phone.value);
+        if (!isValidPhone(phone)) { errEl.textContent = "Enter a valid phone number in international format, e.g. +962791234567."; form.phone.focus(); return; }
+        form.phone.value = phone; // reflect normalized value
+        // Merge optional Area/District into the address for delivery.
+        const area = form.area.value.trim();
+        const fullAddress = area ? `${area} — ${form.address.value.trim()}` : form.address.value.trim();
+
         const btn = form.querySelector("[data-submit]");
         btn.setAttribute("data-loading", "1"); btn.disabled = true;
         try {
           const res = await API.createOrder({
             customer: {
-              name: form.name.value.trim(), phone: form.phone.value.trim(),
-              email: form.email.value.trim(), city: form.city.value.trim(),
-              address: form.address.value.trim(), notes: form.notes.value.trim(),
+              name: form.name.value.trim(), phone,
+              email: form.email.value.trim(), city: form.city.value,
+              address: fullAddress, notes: form.notes.value.trim(),
             },
             paymentMethod: "Cash on Delivery",
             userEmail: user?.email || "",
