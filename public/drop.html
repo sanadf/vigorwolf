@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drop One — VIGORWOLF</title>
+  <meta name="description" content="VIGORWOLF Drop One. The Pack moves first. Sign up to be notified when we launch.">
+  <link rel="icon" href="/assets/media/logo-red.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <!-- DROP HERO -->
+    <section class="hero" style="min-height:auto;padding:80px 0">
+      <div class="hero__bg"><img src="/assets/media/jersey.jpg" alt="VIGORWOLF Drop One" style="object-position:70% 20%"></div>
+      <span class="hero__ghost" aria-hidden="true">01</span>
+      <div class="container hero__inner text-center" style="margin-inline:auto;max-width:760px">
+        <span class="eyebrow eyebrow--plain" style="justify-content:center">
+          <span class="clock"><span class="dot"></span> Drop Status: <b data-drop-status style="color:var(--text)">Coming Soon</b></span>
+        </span>
+        <h1 class="display mt-16">Drop One:<br><span class="gothic text-red" data-drop-hero>Coming Soon</span></h1>
+        <p class="lede" style="margin-inline:auto" data-drop-desc>The Pack moves first. Sign up to be first notified when we launch.</p>
+        <div class="countdown mt-24" data-countdown style="justify-content:center"></div>
+        <div class="hero__cta mt-40" style="justify-content:center" data-drop-cta>
+          <a class="btn btn--lg" href="#notify">Get Notified</a>
+          <a class="btn btn--lg btn--ghost" href="/shop.html">Preview Pieces</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="marquee" aria-hidden="true"><div class="marquee__track">
+      <span>Limited Units</span><span>No Restocks</span><span>The Pack Moves First</span><span>Drop One</span>
+      <span>Limited Units</span><span>No Restocks</span><span>The Pack Moves First</span><span>Drop One</span>
+    </div></div>
+
+    <!-- FEATURED PRODUCTS -->
+    <section class="section">
+      <div class="container">
+        <div class="section-head"><span class="eyebrow">In This Drop</span><h2 class="display mt-8">The Pieces</h2></div>
+        <div class="grid-products" data-drop-grid><p class="text-muted">Loading…</p></div>
+      </div>
+    </section>
+
+    <!-- LIMITED MESSAGING -->
+    <section class="section band">
+      <div class="container split">
+        <div data-reveal>
+          <span class="eyebrow">Limited Drop</span>
+          <h2 class="display mt-16">Once It's Gone,<br>It's <span class="gothic text-red">Gone</span></h2>
+          <p class="text-muted mt-16">Drop One is produced in limited units. No restocks, no second chances. When the counter hits zero, the Pack moves — and the fastest eat first.</p>
+          <div class="feature-grid mt-24" style="grid-template-columns:1fr 1fr">
+            <div class="feature"><span class="num">Limited</span><h3>Units Only</h3><p>Small run. Numbered energy.</p></div>
+            <div class="feature"><span class="num">First</span><h3>Access</h3><p>Signups shop before the public.</p></div>
+          </div>
+        </div>
+        <div class="split__media" data-reveal><img src="/assets/media/tanktop.jpg" alt="VIGORWOLF Drop One"></div>
+      </div>
+    </section>
+
+    <!-- NOTIFY -->
+    <section class="section" id="notify">
+      <div class="container text-center" style="max-width:620px" data-reveal>
+        <span class="eyebrow eyebrow--plain">Sign Up To Be First</span>
+        <h2 class="display mt-16">Get Notified</h2>
+        <p class="text-muted mt-16">Be first in line when Drop One goes live. Early access + drop alerts.</p>
+        <form class="signup-form mt-24" data-signup data-source="drop" style="margin-inline:auto">
+          <input class="input" type="email" name="email" placeholder="your@email.com" required aria-label="Email">
+          <button class="btn" type="submit">Notify Me</button>
+        </form>
+        <p class="signup-msg" data-signup-msg></p>
+      </div>
+    </section>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/assets/js/config.js?v=2"></script>
+  <script src="/assets/js/api.js?v=2"></script>
+  <script src="/assets/js/store.js?v=2"></script>
+  <script src="/assets/js/ui.js?v=2"></script>
+  <script>
+    (async function () {
+      let dropDate = window.VW_CONFIG.fallbackDropDate, drop = null;
+      try { drop = (await API.currentDrop()).drop; } catch (e) {}
+      if (drop) {
+        dropDate = drop.countdownDate || dropDate;
+        const isLive = drop.status === "Live";
+        document.querySelectorAll("[data-drop-status]").forEach(e => e.textContent = drop.status);
+        const hero = document.querySelector("[data-drop-hero]"); if (hero) hero.textContent = drop.status;
+        const desc = document.querySelector("[data-drop-desc]"); if (desc && drop.description) desc.textContent = drop.description;
+        if (isLive) {
+          document.querySelector("[data-drop-cta]").innerHTML =
+            '<a class="btn btn--lg" href="/shop.html">Shop Drop</a><a class="btn btn--lg btn--ghost" href="#notify">Join the Pack</a>';
+        }
+      }
+      VW.startCountdown(document.querySelector("[data-countdown]"), dropDate);
+
+      const grid = document.querySelector("[data-drop-grid]");
+      try {
+        const { products } = await API.products();
+        VW.setProductIndex(products);
+        let list = products;
+        if (drop && drop.featuredIds && drop.featuredIds.length) {
+          const byId = Object.fromEntries(products.map(p => [p.id, p]));
+          list = drop.featuredIds.map(id => byId[id]).filter(Boolean);
+        }
+        grid.innerHTML = (list.length ? list : products).map(VW.productCard).join("") || "<p class='text-muted'>Pieces dropping soon.</p>";
+        VW.initReveal();
+      } catch (e) { grid.innerHTML = "<p class='text-muted'>Pieces dropping soon.</p>"; }
+    })();
+  </script>
+</body>
+</html>

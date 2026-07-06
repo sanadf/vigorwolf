@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cart — VIGORWOLF</title>
+  <link rel="icon" href="/assets/media/logo-red.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <section class="section">
+      <div class="container">
+        <span class="eyebrow">Your Bag</span>
+        <h1 class="display mt-8 mb-24">Cart</h1>
+
+        <div class="cart-grid" style="display:grid;grid-template-columns:1.6fr 1fr;gap:40px;align-items:start">
+          <div data-items></div>
+          <aside class="panel" data-summary style="position:sticky;top:90px"></aside>
+        </div>
+
+        <div class="empty hidden" data-empty>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 6h15l-1.5 9h-12z"/><circle cx="9" cy="20" r="1.4"/><circle cx="18" cy="20" r="1.4"/></svg>
+          <h3>Your cart is empty</h3>
+          <p>Nothing in the bag yet. Go find your pieces.</p>
+          <a class="btn" href="/shop.html">Shop the Drop</a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/assets/js/config.js?v=2"></script>
+  <script src="/assets/js/api.js?v=2"></script>
+  <script src="/assets/js/store.js?v=2"></script>
+  <script src="/assets/js/ui.js?v=2"></script>
+  <script>
+    (function () {
+      const itemsEl = document.querySelector("[data-items]");
+      const summaryEl = document.querySelector("[data-summary]");
+      const emptyEl = document.querySelector("[data-empty]");
+      const grid = document.querySelector(".cart-grid");
+      const key = (i) => `${i.productId}|${i.size}|${i.color}`;
+
+      function render() {
+        const items = VW.Cart.all();
+        if (!items.length) { grid.classList.add("hidden"); emptyEl.classList.remove("hidden"); return; }
+        grid.classList.remove("hidden"); emptyEl.classList.add("hidden");
+
+        itemsEl.innerHTML = items.map(i => `
+          <div class="line-item" data-key="${key(i)}">
+            <a href="/product.html?slug=${i.slug}"><img src="${i.image || '/assets/media/logo-white.png'}" alt="${i.name}"></a>
+            <div>
+              <a href="/product.html?slug=${i.slug}"><div class="line-item__name">${i.name}</div></a>
+              <div class="line-item__meta">Size ${i.size} · ${i.color} · ${VW.money(i.price)}</div>
+              <div class="stepper mt-8">
+                <button data-dec aria-label="Decrease">−</button>
+                <input data-qty value="${i.qty}" inputmode="numeric" aria-label="Quantity">
+                <button data-inc aria-label="Increase">+</button>
+              </div>
+            </div>
+            <div style="text-align:right">
+              <div class="price">${VW.money(i.price * i.qty)}</div>
+              <button class="icon-btn mt-8" data-remove aria-label="Remove">Remove</button>
+            </div>
+          </div>`).join("");
+
+        const sub = VW.Cart.subtotal();
+        summaryEl.innerHTML = `
+          <h3 class="display" style="font-size:1.4rem">Summary</h3>
+          <div class="summary-row mt-16"><span>Subtotal</span><span>${VW.money(sub)}</span></div>
+          <div class="summary-row"><span>Shipping</span><span>Calculated at checkout</span></div>
+          <div class="summary-row summary-row--total"><span>Total</span><span>${VW.money(sub)}</span></div>
+          <a class="btn btn--block btn--lg mt-16" href="/checkout.html">Checkout</a>
+          <a class="btn btn--block btn--ghost mt-8" href="/shop.html">Continue Shopping</a>`;
+
+        itemsEl.querySelectorAll(".line-item").forEach(row => {
+          const k = row.getAttribute("data-key");
+          const qty = row.querySelector("[data-qty]");
+          row.querySelector("[data-dec]").addEventListener("click", () => { VW.Cart.setQty(k, (+qty.value||1)-1); render(); });
+          row.querySelector("[data-inc]").addEventListener("click", () => { VW.Cart.setQty(k, (+qty.value||1)+1); render(); });
+          qty.addEventListener("change", () => { VW.Cart.setQty(k, +qty.value||1); render(); });
+          row.querySelector("[data-remove]").addEventListener("click", () => { VW.Cart.remove(k); VW.toast("Removed from cart"); render(); });
+        });
+      }
+      render();
+    })();
+  </script>
+</body>
+</html>

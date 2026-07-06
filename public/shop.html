@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shop — VIGORWOLF</title>
+  <meta name="description" content="Shop VIGORWOLF streetwear & gymwear. Tees, hoodies, jerseys and more. Limited drops.">
+  <link rel="icon" href="/assets/media/logo-red.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <section class="section--tight" style="padding-top:44px">
+      <div class="container">
+        <span class="eyebrow">The Armory</span>
+        <h1 class="display mt-8">Shop</h1>
+      </div>
+    </section>
+
+    <section class="section" style="padding-top:0">
+      <div class="container">
+        <!-- category chips -->
+        <div class="chips-filter" data-cats></div>
+
+        <!-- toolbar -->
+        <div class="toolbar">
+          <input class="input search" type="search" placeholder="Search the pack…" data-search aria-label="Search products">
+          <select class="select" data-filter-size aria-label="Filter by size">
+            <option value="">All sizes</option>
+          </select>
+          <select class="select" data-filter-color aria-label="Filter by color">
+            <option value="">All colors</option>
+          </select>
+          <select class="select" data-filter-status aria-label="Filter by status">
+            <option value="">All status</option>
+            <option value="new_drop">New Drop</option>
+            <option value="low_stock">Low Stock</option>
+            <option value="coming_soon">Coming Soon</option>
+            <option value="sold_out">Sold Out</option>
+          </select>
+          <select class="select" data-sort aria-label="Sort">
+            <option value="newest">Newest</option>
+            <option value="price-asc">Price: Low → High</option>
+            <option value="price-desc">Price: High → Low</option>
+          </select>
+        </div>
+
+        <div class="grid-products" data-grid><p class="text-muted">Loading…</p></div>
+
+        <div class="empty hidden" data-empty>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 7h12l1 13H5z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
+          <h3>Nothing in this pack</h3>
+          <p>No products match your filters. Try clearing them.</p>
+          <button class="btn btn--ghost" data-clear>Clear Filters</button>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/assets/js/config.js?v=2"></script>
+  <script src="/assets/js/api.js?v=2"></script>
+  <script src="/assets/js/store.js?v=2"></script>
+  <script src="/assets/js/ui.js?v=2"></script>
+  <script>
+    (async function () {
+      const grid = document.querySelector("[data-grid]");
+      const empty = document.querySelector("[data-empty]");
+      const state = { cat: "All", q: "", size: "", color: "", status: "", sort: "newest" };
+      let ALL = [];
+
+      try {
+        const res = await API.products();
+        ALL = res.products;
+        VW.setProductIndex(ALL);
+      } catch (e) {
+        grid.innerHTML = "<p class='text-muted'>Could not load products. Is the database seeded? (see README)</p>";
+        return;
+      }
+
+      // Build category chips (only cats that exist + All)
+      const cats = ["All", ...window.VW_CONFIG.categories.filter(c =>
+        c === "New Drop" || c === "Sold Out" || ALL.some(p => p.category === c))];
+      const catWrap = document.querySelector("[data-cats]");
+      catWrap.innerHTML = cats.map((c, i) =>
+        `<button class="chip-filter" aria-pressed="${i === 0}" data-cat="${c}">${c}</button>`).join("");
+
+      // Populate size/color selects from data + config
+      const sizes = [...new Set(ALL.flatMap(p => p.sizes || []))];
+      const colors = [...new Set(ALL.flatMap(p => p.colors || []))];
+      const sizeSel = document.querySelector("[data-filter-size]");
+      const colorSel = document.querySelector("[data-filter-color]");
+      sizes.forEach(s => sizeSel.insertAdjacentHTML("beforeend", `<option value="${s}">${s}</option>`));
+      colors.forEach(c => colorSel.insertAdjacentHTML("beforeend", `<option value="${c}">${c}</option>`));
+
+      function apply() {
+        let list = ALL.slice();
+        if (state.cat !== "All") {
+          if (state.cat === "New Drop") list = list.filter(p => p.status === "new_drop");
+          else if (state.cat === "Sold Out") list = list.filter(p => p.status === "sold_out");
+          else list = list.filter(p => p.category === state.cat);
+        }
+        if (state.q) {
+          const q = state.q.toLowerCase();
+          list = list.filter(p => (p.name + " " + p.category + " " + (p.description||"")).toLowerCase().includes(q));
+        }
+        if (state.size) list = list.filter(p => (p.sizes || []).includes(state.size));
+        if (state.color) list = list.filter(p => (p.colors || []).includes(state.color));
+        if (state.status) list = list.filter(p => p.status === state.status);
+
+        if (state.sort === "price-asc") list.sort((a, b) => (a.onSale?a.salePrice:a.price) - (b.onSale?b.salePrice:b.price));
+        else if (state.sort === "price-desc") list.sort((a, b) => (b.onSale?b.salePrice:b.price) - (a.onSale?a.salePrice:a.price));
+        else list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        if (!list.length) { grid.classList.add("hidden"); empty.classList.remove("hidden"); return; }
+        grid.classList.remove("hidden"); empty.classList.add("hidden");
+        grid.innerHTML = list.map(VW.productCard).join("");
+        VW.initReveal();
+      }
+
+      catWrap.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-cat]"); if (!b) return;
+        state.cat = b.getAttribute("data-cat");
+        catWrap.querySelectorAll("[data-cat]").forEach(x => x.setAttribute("aria-pressed", x === b));
+        apply();
+      });
+      document.querySelector("[data-search]").addEventListener("input", (e) => { state.q = e.target.value; apply(); });
+      sizeSel.addEventListener("change", e => { state.size = e.target.value; apply(); });
+      colorSel.addEventListener("change", e => { state.color = e.target.value; apply(); });
+      document.querySelector("[data-filter-status]").addEventListener("change", e => { state.status = e.target.value; apply(); });
+      document.querySelector("[data-sort]").addEventListener("change", e => { state.sort = e.target.value; apply(); });
+      document.querySelector("[data-clear]").addEventListener("click", () => {
+        Object.assign(state, { cat: "All", q: "", size: "", color: "", status: "", sort: "newest" });
+        document.querySelector("[data-search]").value = ""; sizeSel.value = ""; colorSel.value = "";
+        document.querySelector("[data-filter-status]").value = ""; document.querySelector("[data-sort]").value = "newest";
+        catWrap.querySelectorAll("[data-cat]").forEach((x, i) => x.setAttribute("aria-pressed", i === 0));
+        apply();
+      });
+
+      // deep-link ?cat=
+      const urlCat = new URLSearchParams(location.search).get("cat");
+      if (urlCat && cats.includes(urlCat)) {
+        state.cat = urlCat;
+        catWrap.querySelectorAll("[data-cat]").forEach(x => x.setAttribute("aria-pressed", x.getAttribute("data-cat") === urlCat));
+      }
+      apply();
+    })();
+  </script>
+</body>
+</html>

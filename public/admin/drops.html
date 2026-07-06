@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drops — VIGORWOLF Admin</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/assets/media/logo-red.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+</head>
+<body>
+  <div class="admin-shell">
+    <aside id="admin-side"></aside>
+    <main class="admin-main">
+      <div class="admin-topbar">
+        <div class="flex center gap-16">
+          <button class="admin-menu-btn" data-admin-menu aria-label="Menu">☰</button>
+          <h1>Drops</h1>
+        </div>
+        <button class="btn" data-new>+ New Drop</button>
+      </div>
+      <div data-rows><p class="text-muted">Loading…</p></div>
+    </main>
+  </div>
+
+  <div class="modal-back" data-modal>
+    <div class="modal">
+      <h2 data-modal-title>New Drop</h2>
+      <form data-form>
+        <input type="hidden" name="id">
+        <div class="form-2col">
+          <div class="field"><label>Drop Name <span class="req">*</span></label><input class="input" name="name" required></div>
+          <div class="field"><label>Status</label>
+            <select class="select" name="status"><option>Coming Soon</option><option>Live</option><option>Sold Out</option></select>
+          </div>
+        </div>
+        <div class="field"><label>Hero Text</label><input class="input" name="heroText" placeholder="Drop One: Coming Soon"></div>
+        <div class="field"><label>Description</label><textarea class="textarea" name="description"></textarea></div>
+        <div class="form-2col">
+          <div class="field"><label>Launch Date <span class="text-muted">(display)</span></label><input class="input" name="launchDate" placeholder="11 July 2026"></div>
+          <div class="field"><label>Countdown Date <span class="req">*</span></label><input class="input" name="countdownDate" type="datetime-local"></div>
+        </div>
+        <div class="field"><label>Featured Product IDs <span class="text-muted">(comma separated)</span></label><input class="input" name="featuredIds" placeholder="1, 2, 3"></div>
+        <label class="checkline"><input type="checkbox" name="isCurrent"> Set as current drop (shown on Home &amp; Drop pages)</label>
+        <p class="field-error mb-16" data-modal-error></p>
+        <div class="flex gap-16 wrap">
+          <button class="btn grow" type="submit" data-save>Save Drop</button>
+          <button class="btn btn--ghost" type="button" data-cancel>Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/assets/js/config.js?v=2"></script>
+  <script src="/assets/js/api.js?v=2"></script>
+  <script src="/assets/js/admin.js?v=2"></script>
+  <script>
+    ADMIN.guard("drops.html", async () => {
+      const rowsEl = document.querySelector("[data-rows]");
+      const modal = document.querySelector("[data-modal]");
+      const form = document.querySelector("[data-form]");
+      const errEl = document.querySelector("[data-modal-error]");
+      let drops = [];
+
+      async function load() {
+        try {
+          drops = (await API.admin.drops()).drops;
+          rowsEl.innerHTML = drops.length ? drops.map(d => `
+            <div class="panel mb-16">
+              <div class="flex between center wrap gap-16">
+                <div>
+                  <span class="eyebrow eyebrow--plain">${d.isCurrent ? "★ CURRENT DROP" : "Drop"}</span>
+                  <div class="display" style="font-size:1.5rem">${ADMIN.esc(d.name)}</div>
+                </div>
+                <div class="flex gap-8 center">
+                  <span class="pill pill--${d.status.toLowerCase().replace(/ /g,"")}">${d.status}</span>
+                  <button class="btn btn--sm btn--ghost" data-edit="${d.id}">Edit</button>
+                </div>
+              </div>
+              <p class="text-muted mt-8">${ADMIN.esc(d.description || "")}</p>
+              <div class="flex gap-16 wrap mt-8 mono" style="font-size:.75rem;color:var(--muted-2)">
+                <span>Launch: ${ADMIN.esc(d.launchDate || "—")}</span>
+                <span>Countdown: ${ADMIN.esc(d.countdownDate || "—")}</span>
+                <span>Featured: ${(d.featuredIds||[]).join(", ") || "—"}</span>
+              </div>
+            </div>`).join("") : `<div class="empty"><h3>No drops yet</h3><p>Create your first drop.</p></div>`;
+        } catch (e) { rowsEl.innerHTML = `<p class="text-muted">${e.message}</p>`; }
+      }
+
+      function openModal(d) {
+        errEl.textContent = ""; form.reset();
+        document.querySelector("[data-modal-title]").textContent = d ? "Edit Drop" : "New Drop";
+        form.id.value = d ? d.id : "";
+        if (d) {
+          ["name","status","heroText","description","launchDate"].forEach(k => { if (form[k]) form[k].value = d[k] ?? ""; });
+          // datetime-local wants yyyy-MM-ddTHH:mm
+          form.countdownDate.value = (d.countdownDate || "").slice(0, 16);
+          form.featuredIds.value = (d.featuredIds || []).join(", ");
+          form.isCurrent.checked = !!d.isCurrent;
+        }
+        modal.setAttribute("data-open", "1");
+      }
+      const close = () => modal.setAttribute("data-open", "0");
+
+      document.querySelector("[data-new]").addEventListener("click", () => openModal(null));
+      document.querySelector("[data-cancel]").addEventListener("click", close);
+      modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
+      rowsEl.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-edit]"); if (!b) return;
+        openModal(drops.find(d => d.id == b.getAttribute("data-edit")));
+      });
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault(); errEl.textContent = "";
+        const btn = document.querySelector("[data-save]");
+        btn.setAttribute("data-loading", "1"); btn.disabled = true;
+        const payload = {
+          name: form.name.value.trim(), status: form.status.value,
+          heroText: form.heroText.value.trim(), description: form.description.value.trim(),
+          launchDate: form.launchDate.value.trim(), countdownDate: form.countdownDate.value,
+          featuredIds: form.featuredIds.value.split(",").map(x => parseInt(x.trim(), 10)).filter(n => !isNaN(n)),
+          isCurrent: form.isCurrent.checked,
+        };
+        try {
+          if (form.id.value) await API.admin.updateDrop(form.id.value, payload);
+          else await API.admin.createDrop(payload);
+          close(); await load();
+        } catch (ex) { errEl.textContent = ex.message; }
+        finally { btn.removeAttribute("data-loading"); btn.disabled = false; }
+      });
+
+      await load();
+    });
+  </script>
+</body>
+</html>

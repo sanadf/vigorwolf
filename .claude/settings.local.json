@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s \"https://api.github.com/repos/anthropics/skills/contents/skills/frontend-design\")",
+      "Bash(mkdir -p ~/.claude/skills/frontend-design)",
+      "Bash(curl -s -o ~/.claude/skills/frontend-design/LICENSE.txt \"https://raw.githubusercontent.com/anthropics/skills/main/skills/frontend-design/LICENSE.txt\")",
+      "Bash(curl -s -o ~/.claude/skills/frontend-design/SKILL.md \"https://raw.githubusercontent.com/anthropics/skills/main/skills/frontend-design/SKILL.md\")",
+      "Read(//Users/sanadmadani/.claude/skills/**)",
+      "Read(//Users/sanadmadani/.claude/skills/frontend-design/**)",
+      "Bash(curl -s \"https://api.github.com/repos/nextlevelbuilder/ui-ux-pro-max-skill/contents/\")",
+      "Bash(curl -s \"https://raw.githubusercontent.com/nextlevelbuilder/ui-ux-pro-max-skill/main/README.md\")",
+      "Bash(npm install *)",
+      "Bash(uipro init *)"
+    ]
+  }
+}

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login — VIGORWOLF</title>
+  <link rel="icon" href="/assets/media/logo-red.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <div class="container">
+      <div class="auth-wrap">
+        <div class="text-center mb-24">
+          <span class="eyebrow eyebrow--plain" style="justify-content:center">Welcome Back</span>
+          <h1 class="display mt-8">Enter the Pack</h1>
+        </div>
+        <form class="panel" data-login novalidate>
+          <div class="field"><label>Email <span class="req">*</span></label><input class="input" name="email" type="email" required></div>
+          <div class="field"><label>Password <span class="req">*</span></label><input class="input" name="password" type="password" required></div>
+          <p class="field-error mb-16" data-error></p>
+          <button class="btn btn--block btn--lg" type="submit">Login</button>
+          <div class="divider"></div>
+          <p class="form-note text-center">No account? <a class="link-underline" href="/register.html">Join the Pack</a></p>
+        </form>
+      </div>
+    </div>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/assets/js/config.js?v=2"></script>
+  <script src="/assets/js/api.js?v=2"></script>
+  <script src="/assets/js/store.js?v=2"></script>
+  <script src="/assets/js/ui.js?v=2"></script>
+  <script>
+    if (VW.User.isLoggedIn()) location.href = "/profile.html";
+    const form = document.querySelector("[data-login]");
+    const err = document.querySelector("[data-error]");
+    form.addEventListener("submit", (e) => {
+      e.preventDefault(); err.textContent = "";
+      try {
+        VW.User.login(form.email.value.trim(), form.password.value);
+        const next = new URLSearchParams(location.search).get("next");
+        location.href = next || "/profile.html";
+      } catch (ex) { err.textContent = ex.message; }
+    });
+  </script>
+</body>
+</html>

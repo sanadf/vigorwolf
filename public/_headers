@@ -1,0 +1,19 @@
+# Cloudflare Pages headers — basic hardening + caching.
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), microphone=(), camera=()
+
+# Images/fonts rarely change and can be cached hard.
+/assets/media/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# CSS/JS use unhashed names, so allow revalidation instead of immutable caching.
+/assets/css/*
+  Cache-Control: public, max-age=3600, must-revalidate
+/assets/js/*
+  Cache-Control: public, max-age=3600, must-revalidate
+
+/admin/*
+  X-Robots-Tag: noindex

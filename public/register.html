@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Register — VIGORWOLF</title>
+  <link rel="icon" href="/assets/media/logo-red.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <div class="container">
+      <div class="auth-wrap">
+        <div class="text-center mb-24">
+          <span class="eyebrow eyebrow--plain" style="justify-content:center">Join the Pack</span>
+          <h1 class="display mt-8">Create Account</h1>
+        </div>
+        <form class="panel" data-register novalidate>
+          <div class="field"><label>Full Name <span class="req">*</span></label><input class="input" name="name" required></div>
+          <div class="field"><label>Email <span class="req">*</span></label><input class="input" name="email" type="email" required></div>
+          <div class="field"><label>Password <span class="req">*</span></label><input class="input" name="password" type="password" minlength="4" required></div>
+          <div class="form-2col">
+            <div class="field"><label>Phone</label><input class="input" name="phone" type="tel"></div>
+            <div class="field"><label>City</label><input class="input" name="city"></div>
+          </div>
+          <div class="field"><label>Address</label><input class="input" name="address"></div>
+          <p class="field-error mb-16" data-error></p>
+          <button class="btn btn--block btn--lg" type="submit">Create Account</button>
+          <div class="divider"></div>
+          <p class="form-note text-center">Already in? <a class="link-underline" href="/login.html">Login</a></p>
+        </form>
+      </div>
+    </div>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/assets/js/config.js?v=2"></script>
+  <script src="/assets/js/api.js?v=2"></script>
+  <script src="/assets/js/store.js?v=2"></script>
+  <script src="/assets/js/ui.js?v=2"></script>
+  <script>
+    if (VW.User.isLoggedIn()) location.href = "/profile.html";
+    const form = document.querySelector("[data-register]");
+    const err = document.querySelector("[data-error]");
+    form.addEventListener("submit", (e) => {
+      e.preventDefault(); err.textContent = "";
+      const d = Object.fromEntries(new FormData(form));
+      if (!d.name || !d.email || !d.password) { err.textContent = "Name, email and password are required."; return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) { err.textContent = "Enter a valid email."; return; }
+      try {
+        VW.User.register(d);
+        VW.toast("Welcome to the Pack", "ok");
+        location.href = "/profile.html";
+      } catch (ex) { err.textContent = ex.message; }
+    });
+  </script>
+</body>
+</html>

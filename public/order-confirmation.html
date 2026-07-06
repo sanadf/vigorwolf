@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Order Confirmed — VIGORWOLF</title>
+  <link rel="icon" href="/assets/media/logo-red.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <section class="section">
+      <div class="container" style="max-width:760px" data-conf>
+        <p class="text-muted">Loading your order…</p>
+      </div>
+    </section>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/assets/js/config.js?v=2"></script>
+  <script src="/assets/js/api.js?v=2"></script>
+  <script src="/assets/js/store.js?v=2"></script>
+  <script src="/assets/js/ui.js?v=2"></script>
+  <script>
+    (async function () {
+      const wrap = document.querySelector("[data-conf]");
+      const number = new URLSearchParams(location.search).get("order");
+      if (!number) { wrap.innerHTML = "<div class='empty'><h3>No order</h3><a class='btn' href='/shop.html'>Shop</a></div>"; return; }
+
+      let o;
+      try { o = (await API.order(number)).order; }
+      catch (e) { wrap.innerHTML = `<div class="empty"><h3>Order not found</h3><p>${number}</p><a class="btn" href="/shop.html">Shop</a></div>`; return; }
+
+      const pillClass = "pill pill--" + (o.status || "Pending").toLowerCase();
+      wrap.innerHTML = `
+        <div class="text-center mb-24" data-reveal>
+          <span class="eyebrow eyebrow--plain" style="justify-content:center;color:var(--green)">◆ Order Received</span>
+          <h1 class="display mt-16">The Pack Has You</h1>
+          <p class="text-muted mt-16">Thank you — your order is in. We will contact you soon to confirm your order.</p>
+        </div>
+
+        <div class="panel" data-reveal>
+          <div class="flex between center wrap gap-16">
+            <div>
+              <span class="eyebrow eyebrow--plain">Order Number</span>
+              <div class="display" style="font-size:1.8rem" data-copy>${o.orderNumber}</div>
+            </div>
+            <span class="${pillClass}">${o.status}</span>
+          </div>
+
+          <div class="divider"></div>
+          <div class="form-2col">
+            <div><span class="eyebrow eyebrow--plain">Customer</span><p class="mt-8">${o.customerName}<br><span class="text-muted mono" style="font-size:.8rem">${o.email} · ${o.phone}</span></p></div>
+            <div><span class="eyebrow eyebrow--plain">Deliver To</span><p class="mt-8">${o.city}<br><span class="text-muted">${o.address}</span></p></div>
+          </div>
+
+          <div class="divider"></div>
+          <span class="eyebrow eyebrow--plain mb-8">Items</span>
+          ${o.items.map(i => `
+            <div class="line-item" style="grid-template-columns:60px 1fr auto">
+              <img src="${i.image || '/assets/media/logo-white.png'}" alt="" style="width:60px;height:74px">
+              <div><div class="line-item__name" style="font-size:.95rem">${i.name}</div>
+                <div class="line-item__meta">Size ${i.size} · ${i.color} · ×${i.qty}</div></div>
+              <div class="price">${VW.money(i.price * i.qty)}</div>
+            </div>`).join("")}
+
+          <div class="summary-row mt-8"><span>Subtotal</span><span>${VW.money(o.subtotal)}</span></div>
+          ${o.couponDiscount > 0 ? `<div class="summary-row"><span>Coupon (${o.couponCode})</span><span>− ${VW.money(o.couponDiscount)}</span></div>` : ""}
+          ${o.pointsDiscount > 0 ? `<div class="summary-row"><span>Points redeemed (${o.pointsRedeemed})</span><span>− ${VW.money(o.pointsDiscount)}</span></div>` : ""}
+          <div class="summary-row summary-row--total"><span>Total (${o.paymentMethod})</span><span>${VW.money(o.total)}</span></div>
+
+          ${o.pointsEarned > 0 ? `<div class="panel mt-16" style="border-color:var(--line-2)">
+            <span class="eyebrow eyebrow--plain">Loyalty</span>
+            <p class="mt-8">You earned <b>${o.pointsEarned} points</b> on this order — that's <b>${VW.money(o.pointsEarned/100)}</b> off your next drop.</p>
+          </div>` : ""}
+
+          <div class="flex gap-16 wrap mt-24">
+            <a class="btn" href="/shop.html">Keep Shopping</a>
+            <a class="btn btn--ghost" href="/orders.html">My Orders</a>
+          </div>
+        </div>`;
+      VW.initReveal();
+    })();
+  </script>
+</body>
+</html>

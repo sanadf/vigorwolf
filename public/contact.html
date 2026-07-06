@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contact — VIGORWOLF</title>
+  <link rel="icon" href="/assets/media/logo-red.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <section class="section">
+      <div class="container">
+        <div class="split" style="align-items:start">
+          <div data-reveal>
+            <span class="eyebrow">Get In Touch</span>
+            <h1 class="display mt-8">Contact<br>the <span class="gothic text-red">Pack</span></h1>
+            <p class="text-muted mt-16">Questions, sizing, wholesale, or collabs — reach out. Our support team will reply soon.</p>
+
+            <div class="stack-lg mt-24">
+              <a class="flex center gap-16" href="mailto:vigorwolf1@gmail.com" data-email-link>
+                <span class="nav__icon" data-ic="mail"></span><span class="mono">vigorwolf1@gmail.com</span>
+              </a>
+              <a class="flex center gap-16" data-ig-link target="_blank" rel="noopener">
+                <span class="nav__icon" data-ic="ig"></span><span class="mono">Instagram — @vigorwolf</span>
+              </a>
+              <a class="flex center gap-16" data-tt-link target="_blank" rel="noopener">
+                <span class="nav__icon" data-ic="tiktok"></span><span class="mono">TikTok — @vigorwolf</span>
+              </a>
+            </div>
+          </div>
+
+          <form class="panel" data-contact novalidate data-reveal>
+            <h3 class="display mb-16" style="font-size:1.3rem">Send a Message</h3>
+            <div class="field"><label>Name <span class="req">*</span></label><input class="input" name="name" required></div>
+            <div class="field"><label>Email <span class="req">*</span></label><input class="input" name="email" type="email" required></div>
+            <div class="field"><label>Message <span class="req">*</span></label><textarea class="textarea" name="message" required></textarea></div>
+            <p class="field-error mb-16" data-error></p>
+            <p class="signup-msg mb-16" data-ok></p>
+            <button class="btn btn--block btn--lg" type="submit" data-submit>Send Message</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/assets/js/config.js?v=2"></script>
+  <script src="/assets/js/api.js?v=2"></script>
+  <script src="/assets/js/store.js?v=2"></script>
+  <script src="/assets/js/ui.js?v=2"></script>
+  <script>
+    // wire icons + social links from config
+    document.querySelector('[data-ic="mail"]').innerHTML = VW.icons.mail;
+    document.querySelector('[data-ic="ig"]').innerHTML = VW.icons.ig;
+    document.querySelector('[data-ic="tiktok"]').innerHTML = VW.icons.tiktok;
+    document.querySelector("[data-ig-link]").href = VW_CONFIG.social.instagram;
+    document.querySelector("[data-tt-link]").href = VW_CONFIG.social.tiktok;
+    document.querySelector("[data-email-link]").href = "mailto:" + VW_CONFIG.social.email;
+
+    const form = document.querySelector("[data-contact]");
+    const err = document.querySelector("[data-error]");
+    const ok = document.querySelector("[data-ok]");
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault(); err.textContent = ""; ok.textContent = "";
+      const d = Object.fromEntries(new FormData(form));
+      if (!d.name || !d.email || !d.message) { err.textContent = "All fields are required."; return; }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(d.email)) { err.textContent = "Enter a valid email."; return; }
+      const btn = form.querySelector("[data-submit]");
+      btn.setAttribute("data-loading", "1"); btn.disabled = true;
+      try {
+        const res = await API.contact(d);
+        ok.textContent = res.message; ok.setAttribute("data-type", "ok"); form.reset();
+      } catch (ex) { err.textContent = ex.message; }
+      finally { btn.removeAttribute("data-loading"); btn.disabled = false; }
+    });
+  </script>
+</body>
+</html>

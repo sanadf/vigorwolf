@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dashboard — VIGORWOLF Admin</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/assets/media/logo-red.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+</head>
+<body>
+  <div class="admin-shell">
+    <aside id="admin-side"></aside>
+    <main class="admin-main">
+      <div class="admin-topbar">
+        <div class="flex center gap-16">
+          <button class="admin-menu-btn" data-admin-menu aria-label="Menu">☰</button>
+          <h1>Dashboard</h1>
+        </div>
+        <span class="eyebrow eyebrow--plain" data-admin-email></span>
+      </div>
+
+      <div class="stat-grid" data-stats><p class="text-muted">Loading…</p></div>
+
+      <h2 class="display mb-16" style="font-size:1.4rem">Latest Orders</h2>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>Order</th><th>Customer</th><th>Total</th><th>Status</th><th>Date</th></tr></thead>
+          <tbody data-latest><tr><td colspan="5" class="text-muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <script src="/assets/js/config.js?v=2"></script>
+  <script src="/assets/js/api.js?v=2"></script>
+  <script src="/assets/js/admin.js?v=2"></script>
+  <script>
+    ADMIN.guard("dashboard.html", async (me) => {
+      document.querySelector("[data-admin-email]").textContent = me.email;
+      try {
+        const { stats, latestOrders } = await API.admin.stats();
+        const cards = [
+          ["Total Sales", ADMIN.money(stats.totalSales), true],
+          ["Total Orders", stats.totalOrders],
+          ["Pending Orders", stats.pending],
+          ["Total Products", stats.totalProducts],
+          ["Low Stock", stats.lowStock],
+          ["Sold Out", stats.soldOut],
+          ["Coming Soon", stats.comingSoon],
+          ["Email Signups", stats.signups],
+          ["Points Issued", stats.pointsIssued],
+          ["Points Redeemed", stats.pointsRedeemed],
+          ["Active Coupons", stats.activeCoupons],
+        ];
+        document.querySelector("[data-stats]").innerHTML = cards.map(([k, v, accent]) =>
+          `<div class="stat${accent ? " stat--accent" : ""}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join("");
+
+        const tb = document.querySelector("[data-latest]");
+        tb.innerHTML = latestOrders.length
+          ? latestOrders.map(o => `<tr>
+              <td class="mono">${ADMIN.esc(o.orderNumber)}</td>
+              <td>${ADMIN.esc(o.customerName)}</td>
+              <td class="mono">${ADMIN.money(o.total)}</td>
+              <td><span class="pill pill--${o.status.toLowerCase()}">${o.status}</span></td>
+              <td class="mono" style="color:var(--muted-2)">${ADMIN.fmtDate(o.createdAt)}</td></tr>`).join("")
+          : `<tr><td colspan="5" class="text-muted">No orders yet.</td></tr>`;
+      } catch (e) {
+        document.querySelector("[data-stats]").innerHTML = `<p class="text-muted">Failed to load stats: ${e.message}</p>`;
+      }
+    });
+  </script>
+</body>
+</html>

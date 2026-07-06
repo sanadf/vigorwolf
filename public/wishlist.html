@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Wishlist — VIGORWOLF</title>
+  <link rel="icon" href="/assets/media/logo-red.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <section class="section">
+      <div class="container">
+        <span class="eyebrow">Saved</span>
+        <h1 class="display mt-8 mb-24">Wishlist</h1>
+        <div class="grid-products" data-grid><p class="text-muted">Loading…</p></div>
+        <div class="empty hidden" data-empty>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 21s-8-4.6-8-10a4.6 4.6 0 0 1 8-3 4.6 4.6 0 0 1 8 3c0 5.4-8 10-8 10z"/></svg>
+          <h3>Nothing saved yet</h3>
+          <p>Tap the heart on any product to save it here.</p>
+          <a class="btn" href="/shop.html">Shop the Drop</a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/assets/js/config.js?v=2"></script>
+  <script src="/assets/js/api.js?v=2"></script>
+  <script src="/assets/js/store.js?v=2"></script>
+  <script src="/assets/js/ui.js?v=2"></script>
+  <script>
+    (async function () {
+      const grid = document.querySelector("[data-grid]");
+      const empty = document.querySelector("[data-empty]");
+      const slugs = VW.Wishlist.all();
+      if (!slugs.length) { grid.classList.add("hidden"); empty.classList.remove("hidden"); return; }
+      try {
+        const { products } = await API.products();
+        const list = products.filter(p => slugs.includes(p.slug));
+        if (!list.length) { grid.classList.add("hidden"); empty.classList.remove("hidden"); return; }
+        VW.setProductIndex(list);
+        grid.innerHTML = list.map(VW.productCard).join("");
+        VW.initReveal();
+      } catch (e) { grid.innerHTML = "<p class='text-muted'>Could not load wishlist.</p>"; }
+    })();
+  </script>
+</body>
+</html>

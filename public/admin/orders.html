@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Orders — VIGORWOLF Admin</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/assets/media/logo-red.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+</head>
+<body>
+  <div class="admin-shell">
+    <aside id="admin-side"></aside>
+    <main class="admin-main">
+      <div class="admin-topbar">
+        <div class="flex center gap-16">
+          <button class="admin-menu-btn" data-admin-menu aria-label="Menu">☰</button>
+          <h1>Orders</h1>
+        </div>
+      </div>
+
+      <div class="toolbar">
+        <input class="input search" type="search" placeholder="Search order #, name, email, phone…" data-q>
+        <select class="select" data-status-filter>
+          <option value="">All statuses</option>
+        </select>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>Order</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Date</th><th></th></tr></thead>
+          <tbody data-rows><tr><td colspan="7" class="text-muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <!-- Order detail modal -->
+  <div class="modal-back" data-modal>
+    <div class="modal" data-modal-body></div>
+  </div>
+
+  <script src="/assets/js/config.js?v=2"></script>
+  <script src="/assets/js/api.js?v=2"></script>
+  <script src="/assets/js/admin.js?v=2"></script>
+  <script>
+    ADMIN.guard("orders.html", async () => {
+      const rowsEl = document.querySelector("[data-rows]");
+      const qEl = document.querySelector("[data-q]");
+      const statusEl = document.querySelector("[data-status-filter]");
+      const modal = document.querySelector("[data-modal]");
+      const modalBody = document.querySelector("[data-modal-body]");
+      let orders = [];
+
+      statusEl.innerHTML += VW_CONFIG.orderStatuses.map(s => `<option>${s}</option>`).join("");
+
+      async function load() {
+        try {
+          orders = (await API.admin.orders(qEl.value.trim(), statusEl.value)).orders;
+          rowsEl.innerHTML = orders.length ? orders.map(o => `
+            <tr>
+              <td class="mono">${ADMIN.esc(o.orderNumber)}</td>
+              <td>${ADMIN.esc(o.customerName)}<br><span class="mono" style="color:var(--muted-2);font-size:.7rem">${ADMIN.esc(o.phone)}</span></td>
+              <td class="mono">${o.items.reduce((s,i)=>s+i.qty,0)}</td>
+              <td class="mono">${ADMIN.money(o.total)}</td>
+              <td><span class="pill pill--${o.status.toLowerCase()}">${o.status}</span></td>
+              <td class="mono" style="color:var(--muted-2);font-size:.72rem">${ADMIN.fmtDate(o.createdAt)}</td>
+              <td><button class="btn btn--sm btn--ghost" data-view="${o.id}">View</button></td>
+            </tr>`).join("") : `<tr><td colspan="7" class="text-muted">No orders found.</td></tr>`;
+        } catch (e) { rowsEl.innerHTML = `<tr><td colspan="7" class="text-muted">${e.message}</td></tr>`; }
+      }
+
+      function openOrder(o) {
+        modalBody.innerHTML = `
+          <div class="flex between center wrap gap-16 mb-16">
+            <h2 style="margin:0">${ADMIN.esc(o.orderNumber)}</h2>
+            <span class="pill pill--${o.status.toLowerCase()}">${o.status}</span>
+          </div>
+          <div class="form-2col">
+            <div><span class="eyebrow eyebrow--plain">Customer</span><p class="mt-8">${ADMIN.esc(o.customerName)}<br><span class="mono" style="font-size:.8rem;color:var(--muted)">${ADMIN.esc(o.email)}<br>${ADMIN.esc(o.phone)}</span></p></div>
+            <div><span class="eyebrow eyebrow--plain">Deliver To</span><p class="mt-8">${ADMIN.esc(o.city)}<br><span class="text-muted">${ADMIN.esc(o.address)}</span></p></div>
+          </div>
+          ${o.notes ? `<p class="mono mt-16" style="color:var(--muted)">Notes: ${ADMIN.esc(o.notes)}</p>` : ""}
+          <div class="divider"></div>
+          ${o.items.map(i => `<div class="summary-row"><span>${ADMIN.esc(i.name)} <span style="color:var(--muted-2)">×${i.qty} · ${ADMIN.esc(i.size)}/${ADMIN.esc(i.color)}</span></span><span>${ADMIN.money(i.price*i.qty)}</span></div>`).join("")}
+          <div class="summary-row"><span>Subtotal</span><span>${ADMIN.money(o.subtotal)}</span></div>
+          ${o.couponDiscount > 0 ? `<div class="summary-row"><span>Coupon (${ADMIN.esc(o.couponCode)})</span><span>− ${ADMIN.money(o.couponDiscount)}</span></div>` : ""}
+          ${o.pointsDiscount > 0 ? `<div class="summary-row"><span>Points redeemed (${o.pointsRedeemed})</span><span>− ${ADMIN.money(o.pointsDiscount)}</span></div>` : ""}
+          <div class="summary-row summary-row--total"><span>Total · ${ADMIN.esc(o.paymentMethod)}</span><span>${ADMIN.money(o.total)}</span></div>
+          ${o.pointsEarned > 0 ? `<p class="mono mt-8" style="color:var(--green)">◆ ${o.pointsEarned} points earned on this order</p>` : ""}
+          <div class="divider"></div>
+          <div class="field"><label>Update Status</label>
+            <select class="select" data-set-status>
+              ${VW_CONFIG.orderStatuses.map(s => `<option${s===o.status?" selected":""}>${s}</option>`).join("")}
+            </select>
+          </div>
+          <div class="flex gap-16 wrap">
+            <button class="btn grow" data-save-status>Save Status</button>
+            <button class="btn btn--ghost" data-close>Close</button>
+          </div>
+          <p class="field-error mt-16" data-status-err></p>`;
+        modal.setAttribute("data-open", "1");
+
+        modalBody.querySelector("[data-close]").addEventListener("click", () => modal.setAttribute("data-open", "0"));
+        modalBody.querySelector("[data-save-status]").addEventListener("click", async (e) => {
+          const val = modalBody.querySelector("[data-set-status]").value;
+          e.target.setAttribute("data-loading", "1"); e.target.disabled = true;
+          try { await API.admin.setOrderStatus(o.id, val); modal.setAttribute("data-open", "0"); await load(); }
+          catch (ex) { modalBody.querySelector("[data-status-err]").textContent = ex.message; e.target.removeAttribute("data-loading"); e.target.disabled = false; }
+        });
+      }
+
+      rowsEl.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-view]"); if (!b) return;
+        openOrder(orders.find(o => o.id == b.getAttribute("data-view")));
+      });
+      modal.addEventListener("click", (e) => { if (e.target === modal) modal.setAttribute("data-open", "0"); });
+
+      let t; qEl.addEventListener("input", () => { clearTimeout(t); t = setTimeout(load, 250); });
+      statusEl.addEventListener("change", load);
+      await load();
+    });
+  </script>
+</body>
+</html>

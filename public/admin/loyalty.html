@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Loyalty — VIGORWOLF Admin</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/assets/media/logo-red.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+</head>
+<body>
+  <div class="admin-shell">
+    <aside id="admin-side"></aside>
+    <main class="admin-main">
+      <div class="admin-topbar">
+        <div class="flex center gap-16">
+          <button class="admin-menu-btn" data-admin-menu aria-label="Menu">☰</button>
+          <h1>Loyalty</h1>
+        </div>
+      </div>
+
+      <div class="stat-grid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
+        <div class="stat stat--accent"><div class="k">Points Issued</div><div class="v" data-issued>—</div></div>
+        <div class="stat"><div class="k">Points Redeemed</div><div class="v" data-redeemed>—</div></div>
+        <div class="stat"><div class="k">Customers</div><div class="v" data-customers>—</div></div>
+      </div>
+
+      <h2 class="display mb-16" style="font-size:1.4rem">Customers</h2>
+      <div class="table-wrap mb-40">
+        <table class="data">
+          <thead><tr><th>Email</th><th>Name</th><th>Points</th><th>Worth</th><th>Adjust</th></tr></thead>
+          <tbody data-users><tr><td colspan="5" class="text-muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
+
+      <h2 class="display mb-16" style="font-size:1.4rem">Transactions</h2>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>Date</th><th>Customer</th><th>Type</th><th>Points</th><th>JD</th><th>Note</th></tr></thead>
+          <tbody data-ledger><tr><td colspan="6" class="text-muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <!-- Adjust points modal -->
+  <div class="modal-back" data-modal>
+    <div class="modal" style="max-width:460px">
+      <h2>Adjust Points</h2>
+      <p class="text-muted mb-16" data-adjust-who></p>
+      <form data-adjust-form>
+        <input type="hidden" name="id">
+        <div class="field"><label>Points <span class="text-muted">(use minus to remove, e.g. -100)</span></label><input class="input" name="points" type="number" required></div>
+        <div class="field"><label>Reason / Note</label><input class="input" name="note" placeholder="e.g. Goodwill / correction"></div>
+        <p class="field-error mb-16" data-adjust-error></p>
+        <div class="flex gap-16 wrap">
+          <button class="btn grow" type="submit" data-save>Save</button>
+          <button class="btn btn--ghost" type="button" data-cancel>Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/assets/js/config.js?v=2"></script>
+  <script src="/assets/js/api.js?v=2"></script>
+  <script src="/assets/js/admin.js?v=2"></script>
+  <script>
+    ADMIN.guard("loyalty.html", async () => {
+      const usersEl = document.querySelector("[data-users]");
+      const ledgerEl = document.querySelector("[data-ledger]");
+      const modal = document.querySelector("[data-modal]");
+      const form = document.querySelector("[data-adjust-form]");
+      const errEl = document.querySelector("[data-adjust-error]");
+      let users = [];
+
+      async function load() {
+        try {
+          const [stats, u, tx] = await Promise.all([API.admin.stats(), API.admin.users(), API.admin.loyaltyTransactions()]);
+          document.querySelector("[data-issued]").textContent = stats.stats.pointsIssued;
+          document.querySelector("[data-redeemed]").textContent = stats.stats.pointsRedeemed;
+          users = u.users;
+          document.querySelector("[data-customers]").textContent = users.length;
+
+          usersEl.innerHTML = users.length ? users.map(x => `
+            <tr>
+              <td class="mono">${ADMIN.esc(x.email)}</td>
+              <td>${ADMIN.esc(x.name || "—")}</td>
+              <td class="mono"><b>${x.pointsBalance}</b></td>
+              <td class="mono">${ADMIN.money(x.jdValue)}</td>
+              <td><button class="btn btn--sm btn--ghost" data-adjust="${x.id}">Adjust</button></td>
+            </tr>`).join("") : `<tr><td colspan="5" class="text-muted">No customers with points yet.</td></tr>`;
+
+          ledgerEl.innerHTML = tx.transactions.length ? tx.transactions.map(t => `
+            <tr>
+              <td class="mono" style="font-size:.72rem;color:var(--muted-2)">${ADMIN.fmtDate(t.createdAt)}</td>
+              <td class="mono">${ADMIN.esc(t.userEmail || "—")}</td>
+              <td><span class="tag">${t.type.replace("_", " ")}</span></td>
+              <td class="mono" style="color:${t.points >= 0 ? "var(--green)" : "var(--muted)"}">${t.points >= 0 ? "+" : ""}${t.points}</td>
+              <td class="mono">${ADMIN.money(t.jdValue)}</td>
+              <td class="text-muted" style="font-size:.8rem">${ADMIN.esc(t.note || "")}</td>
+            </tr>`).join("") : `<tr><td colspan="6" class="text-muted">No transactions yet.</td></tr>`;
+        } catch (e) {
+          usersEl.innerHTML = `<tr><td colspan="5" class="text-muted">${e.message}</td></tr>`;
+        }
+      }
+
+      usersEl.addEventListener("click", (e) => {
+        const b = e.target.closest("[data-adjust]"); if (!b) return;
+        const u = users.find(x => x.id == b.getAttribute("data-adjust"));
+        errEl.textContent = ""; form.reset();
+        form.id.value = u.id;
+        document.querySelector("[data-adjust-who]").textContent = `${u.email} · currently ${u.pointsBalance} pts`;
+        modal.setAttribute("data-open", "1");
+      });
+      document.querySelector("[data-cancel]").addEventListener("click", () => modal.setAttribute("data-open", "0"));
+      modal.addEventListener("click", (e) => { if (e.target === modal) modal.setAttribute("data-open", "0"); });
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault(); errEl.textContent = "";
+        const btn = document.querySelector("[data-save]");
+        btn.setAttribute("data-loading", "1"); btn.disabled = true;
+        try {
+          await API.admin.adjustPoints(form.id.value, parseInt(form.points.value, 10), form.note.value.trim());
+          modal.setAttribute("data-open", "0"); await load();
+        } catch (ex) { errEl.textContent = ex.message; }
+        finally { btn.removeAttribute("data-loading"); btn.disabled = false; }
+      });
+
+      await load();
+    });
+  </script>
+</body>
+</html>

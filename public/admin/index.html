@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin — VIGORWOLF</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" href="/assets/media/logo-red.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+</head>
+<body>
+  <div class="admin-login-wrap">
+    <div class="auth-wrap" style="margin:0;width:100%">
+      <div class="text-center mb-24">
+        <div class="admin-side__logo" style="justify-content:center;margin-bottom:14px">
+          <img src="/assets/media/logo-white.png" alt="" style="width:38px"><b style="font-family:var(--font-display);font-size:1.4rem;text-transform:uppercase">VIGOR<span style="color:var(--red)">WOLF</span></b>
+        </div>
+        <span class="eyebrow eyebrow--plain" style="justify-content:center">Control Room</span>
+        <h1 class="display mt-8">Admin Login</h1>
+      </div>
+      <form class="panel" data-admin-login novalidate>
+        <div class="field"><label>Email <span class="req">*</span></label><input class="input" name="email" type="email" value="admin@vigorwolf.com" required></div>
+        <div class="field"><label>Password <span class="req">*</span></label><input class="input" name="password" type="password" required></div>
+        <p class="field-error mb-16" data-error></p>
+        <button class="btn btn--block btn--lg" type="submit" data-submit>Enter</button>
+        <p class="form-note mt-16 text-center">Authorized access only.</p>
+      </form>
+    </div>
+  </div>
+
+  <script src="/assets/js/config.js?v=2"></script>
+  <script src="/assets/js/api.js?v=2"></script>
+  <script>
+    (async function () {
+      // already logged in? go to dashboard
+      try { await API.admin.me(); location.href = "/admin/dashboard.html"; return; } catch {}
+      const form = document.querySelector("[data-admin-login]");
+      const err = document.querySelector("[data-error]");
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault(); err.textContent = "";
+        const btn = form.querySelector("[data-submit]");
+        btn.setAttribute("data-loading", "1"); btn.disabled = true;
+        try {
+          await API.admin.login(form.email.value.trim(), form.password.value);
+          const next = new URLSearchParams(location.search).get("next");
+          location.href = next || "/admin/dashboard.html";
+        } catch (ex) {
+          err.textContent = ex.message || "Login failed.";
+          btn.removeAttribute("data-loading"); btn.disabled = false;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Profile — VIGORWOLF</title>
+  <link rel="icon" href="/assets/media/logo-red.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <section class="section">
+      <div class="container" style="max-width:720px">
+        <div class="flex between center wrap gap-16 mb-24">
+          <div><span class="eyebrow">Your Account</span><h1 class="display mt-8" data-hi>Profile</h1></div>
+          <button class="btn btn--ghost btn--sm" data-logout>Logout</button>
+        </div>
+
+        <div class="panel mb-24" data-points-panel style="border-color:var(--line-2)">
+          <div class="flex between center wrap gap-16">
+            <div>
+              <span class="eyebrow eyebrow--plain">Loyalty Points</span>
+              <div class="display mt-8" style="font-size:2.2rem"><span data-points>0</span> <span style="font-size:1rem;color:var(--muted)">pts</span></div>
+            </div>
+            <div style="text-align:right">
+              <span class="eyebrow eyebrow--plain">Worth</span>
+              <div class="display mt-8" style="font-size:1.6rem" data-points-jd>0.00 JD</div>
+            </div>
+          </div>
+          <p class="form-note mt-16">Earn 100 points for every 10 JD spent · 100 points = 1 JD off your next order.</p>
+        </div>
+
+        <form class="panel" data-profile>
+          <h3 class="display mb-16" style="font-size:1.3rem">Details</h3>
+          <div class="field"><label>Full Name</label><input class="input" name="name"></div>
+          <div class="field"><label>Email</label><input class="input" name="email" disabled></div>
+          <div class="form-2col">
+            <div class="field"><label>Phone</label><input class="input" name="phone"></div>
+            <div class="field"><label>City</label><input class="input" name="city"></div>
+          </div>
+          <div class="field"><label>Address</label><input class="input" name="address"></div>
+          <button class="btn" type="submit">Save Changes</button>
+        </form>
+
+        <div class="flex gap-16 wrap mt-24">
+          <a class="btn btn--ghost" href="/orders.html">My Orders</a>
+          <a class="btn btn--ghost" href="/wishlist.html">Wishlist</a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/assets/js/config.js?v=2"></script>
+  <script src="/assets/js/api.js?v=2"></script>
+  <script src="/assets/js/store.js?v=2"></script>
+  <script src="/assets/js/ui.js?v=2"></script>
+  <script>
+    // Protect page
+    if (!VW.User.isLoggedIn()) location.href = "/login.html?next=/profile.html";
+    const p = VW.User.profile() || {};
+    const form = document.querySelector("[data-profile]");
+    document.querySelector("[data-hi]").textContent = (p.name || "Profile").split(" ")[0];
+    ["name","email","phone","city","address"].forEach(k => { if (form[k]) form[k].value = p[k] || ""; });
+
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      VW.User.update({ name: form.name.value.trim(), phone: form.phone.value.trim(), city: form.city.value.trim(), address: form.address.value.trim() });
+      VW.toast("Profile saved", "ok");
+      document.querySelector("[data-hi]").textContent = (form.name.value || "Profile").split(" ")[0];
+    });
+    document.querySelector("[data-logout]").addEventListener("click", () => { VW.User.logout(); location.href = "/"; });
+
+    // Loyalty points (server-side, keyed by email)
+    (async () => {
+      try {
+        const pts = await API.userPoints(p.email);
+        document.querySelector("[data-points]").textContent = pts.balance;
+        document.querySelector("[data-points-jd]").textContent = VW.money(pts.jdValue);
+      } catch (e) { /* no points yet */ }
+    })();
+  </script>
+</body>
+</html>

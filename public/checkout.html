@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout — VIGORWOLF</title>
+  <link rel="icon" href="/assets/media/logo-red.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <section class="section">
+      <div class="container">
+        <span class="eyebrow">Secure the Drop</span>
+        <h1 class="display mt-8 mb-24">Checkout</h1>
+
+        <div class="checkout-grid" style="display:grid;grid-template-columns:1.4fr 1fr;gap:40px;align-items:start">
+          <form class="panel" data-checkout novalidate>
+            <h3 class="display mb-16" style="font-size:1.3rem">Delivery Details</h3>
+            <div class="form-2col">
+              <div class="field"><label>Full Name <span class="req">*</span></label><input class="input" name="name" required></div>
+              <div class="field"><label>Phone <span class="req">*</span></label><input class="input" name="phone" type="tel" required></div>
+            </div>
+            <div class="form-2col">
+              <div class="field"><label>Email <span class="req">*</span></label><input class="input" name="email" type="email" required></div>
+              <div class="field"><label>City <span class="req">*</span></label><input class="input" name="city" required></div>
+            </div>
+            <div class="field"><label>Full Address <span class="req">*</span></label><input class="input" name="address" required></div>
+            <div class="field"><label>Order Notes</label><textarea class="textarea" name="notes" placeholder="Landmark, delivery time, size notes…"></textarea></div>
+
+            <h3 class="display mt-24 mb-16" style="font-size:1.3rem">Payment</h3>
+            <label class="checkline" style="border:1px solid var(--accent);background:var(--accent-dim);padding:14px;border-radius:var(--radius)">
+              <input type="radio" name="payment" value="Cash on Delivery" checked>
+              <span>Cash on Delivery — pay when it arrives</span>
+            </label>
+            <label class="checkline" style="border:1px solid var(--line);padding:14px;border-radius:var(--radius);opacity:.6">
+              <input type="radio" name="payment" value="Card" disabled>
+              <span>Card Payment — <span class="text-muted">Coming Soon</span></span>
+            </label>
+
+            <p class="field-error mb-16" data-form-error></p>
+            <button class="btn btn--block btn--lg" type="submit" data-submit>Place Order</button>
+            <p class="form-note mt-16">By placing your order you agree to be contacted to confirm delivery.</p>
+          </form>
+
+          <aside style="position:sticky;top:90px">
+            <div class="panel" data-summary></div>
+
+            <!-- Coupon -->
+            <div class="panel mt-16">
+              <span class="eyebrow eyebrow--plain mb-8">Discount Code</span>
+              <div class="flex gap-8" style="margin-top:10px">
+                <input class="input" data-coupon placeholder="e.g. PACK10" style="text-transform:uppercase">
+                <button class="btn btn--sm" type="button" data-coupon-apply>Apply</button>
+              </div>
+              <p class="signup-msg" data-coupon-msg></p>
+            </div>
+
+            <!-- Loyalty -->
+            <div class="panel mt-16" data-loyalty hidden>
+              <span class="eyebrow eyebrow--plain mb-8">Loyalty Points</span>
+              <p class="mono mt-8" style="font-size:.82rem">You have <b data-points-balance>0</b> points = <b data-points-jd>0.00 JD</b></p>
+              <div class="flex gap-8 mt-8">
+                <input class="input" data-redeem type="number" min="0" step="100" placeholder="Points to use">
+                <button class="btn btn--sm btn--ghost" type="button" data-redeem-max>Max</button>
+                <button class="btn btn--sm" type="button" data-redeem-apply>Apply</button>
+              </div>
+              <p class="signup-msg" data-redeem-msg></p>
+            </div>
+            <p class="form-note mt-16" data-guest-note hidden>
+              <a class="link-underline" href="/login.html?next=/checkout.html">Log in</a> to earn &amp; redeem loyalty points.
+            </p>
+          </aside>
+        </div>
+
+        <div class="empty hidden" data-empty>
+          <h3>Your cart is empty</h3><p>Add pieces before checking out.</p>
+          <a class="btn" href="/shop.html">Shop the Drop</a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/assets/js/config.js?v=2"></script>
+  <script src="/assets/js/api.js?v=2"></script>
+  <script src="/assets/js/store.js?v=2"></script>
+  <script src="/assets/js/ui.js?v=2"></script>
+  <script>
+    (async function () {
+      const form = document.querySelector("[data-checkout]");
+      const summaryEl = document.querySelector("[data-summary]");
+      const emptyEl = document.querySelector("[data-empty]");
+      const grid = document.querySelector(".checkout-grid");
+      const aside = document.querySelector("aside");
+      const errEl = document.querySelector("[data-form-error]");
+
+      const items = VW.Cart.all();
+      if (!items.length) { grid.classList.add("hidden"); aside.classList.add("hidden"); emptyEl.classList.remove("hidden"); return; }
+
+      const money = VW.money;
+      const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
+      const subtotal = round2(VW.Cart.subtotal());
+      const user = VW.User.current();
+
+      const state = { couponCode: "", couponDiscount: 0, redeemPoints: 0, pointsDiscount: 0, balance: 0 };
+      const afterCoupon = () => round2(subtotal - state.couponDiscount);
+      const total = () => round2(afterCoupon() - state.pointsDiscount);
+
+      function renderSummary() {
+        let rows = `<h3 class="display" style="font-size:1.3rem">Your Order</h3>
+          <div class="mt-16">${items.map(i => `
+            <div class="summary-row"><span>${i.name} <span style="color:var(--muted-2)">×${i.qty} · ${i.size}/${i.color}</span></span><span>${money(i.price*i.qty)}</span></div>`).join("")}</div>
+          <div class="summary-row"><span>Subtotal</span><span>${money(subtotal)}</span></div>`;
+        if (state.couponDiscount > 0)
+          rows += `<div class="summary-row"><span>Coupon (${state.couponCode})</span><span>− ${money(state.couponDiscount)}</span></div>`;
+        if (state.pointsDiscount > 0)
+          rows += `<div class="summary-row"><span>Points (${state.redeemPoints})</span><span>− ${money(state.pointsDiscount)}</span></div>`;
+        rows += `<div class="summary-row summary-row--total"><span>Total</span><span>${money(total())}</span></div>`;
+        summaryEl.innerHTML = rows;
+      }
+      renderSummary();
+
+      const profile = VW.User.profile();
+      if (profile) {
+        form.name.value = profile.name || ""; form.email.value = profile.email || "";
+        form.phone.value = profile.phone || ""; form.city.value = profile.city || "";
+        form.address.value = profile.address || "";
+      }
+
+      if (user) {
+        try {
+          const p = await API.userPoints(user.email);
+          state.balance = p.balance;
+          document.querySelector("[data-points-balance]").textContent = p.balance;
+          document.querySelector("[data-points-jd]").textContent = money(p.jdValue);
+          document.querySelector("[data-loyalty]").hidden = false;
+        } catch (e) { document.querySelector("[data-guest-note]").hidden = false; }
+      } else {
+        document.querySelector("[data-guest-note]").hidden = false;
+      }
+
+      const maxRedeemable = () => Math.min(state.balance, Math.floor(afterCoupon() * 100));
+      function capRedeem() {
+        if (state.redeemPoints > maxRedeemable()) {
+          state.redeemPoints = maxRedeemable();
+          state.pointsDiscount = round2(state.redeemPoints / 100);
+        }
+      }
+
+      const couponMsg = document.querySelector("[data-coupon-msg]");
+      document.querySelector("[data-coupon-apply]").addEventListener("click", async () => {
+        const code = document.querySelector("[data-coupon]").value.trim();
+        couponMsg.textContent = "";
+        if (!code) { state.couponCode = ""; state.couponDiscount = 0; capRedeem(); renderSummary(); return; }
+        try {
+          const r = await API.validateCoupon(code, subtotal);
+          state.couponCode = r.code; state.couponDiscount = r.discount;
+          couponMsg.textContent = `Applied — you saved ${money(r.discount)}.`; couponMsg.setAttribute("data-type", "ok");
+        } catch (e) {
+          state.couponCode = ""; state.couponDiscount = 0;
+          couponMsg.textContent = e.message; couponMsg.setAttribute("data-type", "err");
+        }
+        capRedeem(); renderSummary();
+      });
+
+      const redeemMsg = document.querySelector("[data-redeem-msg]");
+      const redeemInput = document.querySelector("[data-redeem]");
+      document.querySelector("[data-redeem-max]")?.addEventListener("click", () => { redeemInput.value = maxRedeemable(); });
+      document.querySelector("[data-redeem-apply]")?.addEventListener("click", () => {
+        redeemMsg.textContent = "";
+        let pts = Math.max(0, parseInt(redeemInput.value, 10) || 0);
+        const max = maxRedeemable();
+        if (pts > state.balance) { redeemMsg.textContent = `You only have ${state.balance} points.`; redeemMsg.setAttribute("data-type","err"); pts = state.balance; }
+        if (pts > max) { pts = max; redeemMsg.textContent = `Capped to ${max} points (can't exceed the total).`; redeemMsg.setAttribute("data-type","dupe"); }
+        state.redeemPoints = pts; state.pointsDiscount = round2(pts / 100); redeemInput.value = pts;
+        if (pts > 0 && !redeemMsg.textContent) { redeemMsg.textContent = `Using ${pts} points = ${money(state.pointsDiscount)} off.`; redeemMsg.setAttribute("data-type","ok"); }
+        renderSummary();
+      });
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault(); errEl.textContent = "";
+        const required = ["name", "phone", "email", "city", "address"];
+        if (required.some(k => !form[k].value.trim())) { errEl.textContent = "Please fill all required fields."; return; }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.value.trim())) { errEl.textContent = "Enter a valid email."; return; }
+        const btn = form.querySelector("[data-submit]");
+        btn.setAttribute("data-loading", "1"); btn.disabled = true;
+        try {
+          const res = await API.createOrder({
+            customer: {
+              name: form.name.value.trim(), phone: form.phone.value.trim(),
+              email: form.email.value.trim(), city: form.city.value.trim(),
+              address: form.address.value.trim(), notes: form.notes.value.trim(),
+            },
+            paymentMethod: "Cash on Delivery",
+            userEmail: user?.email || "",
+            couponCode: state.couponCode,
+            redeemPoints: state.redeemPoints,
+            items: items.map(i => ({ productId: i.productId, size: i.size, color: i.color, qty: i.qty })),
+          });
+          VW.Cart.clear();
+          location.href = "/order-confirmation.html?order=" + encodeURIComponent(res.orderNumber);
+        } catch (err) {
+          errEl.textContent = err.message || "Could not place order. Try again.";
+          btn.removeAttribute("data-loading"); btn.disabled = false;
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

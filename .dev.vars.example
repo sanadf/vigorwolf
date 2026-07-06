@@ -1,0 +1,21 @@
+# Local secrets for `npm run dev`. Copy this file to `.dev.vars` and fill in.
+# `.dev.vars` is gitignored. In PRODUCTION set these in the Cloudflare dashboard
+# (Pages > your project > Settings > Variables and Secrets), NOT in this file.
+
+# Signs admin session cookies. Use a long random string in production.
+SESSION_SECRET="change-me-to-a-long-random-string"
+
+# --- Email notifications (optional) -----------------------------------------
+# Leave EMAIL_PROVIDER empty to disable email (orders still save to D1).
+# Set to "resend" or "web3forms" and add the matching key below.
+EMAIL_PROVIDER=""
+
+# If EMAIL_PROVIDER="resend":
+RESEND_API_KEY=""
+RESEND_FROM="VIGORWOLF <onboarding@resend.dev>"
+
+# If EMAIL_PROVIDER="web3forms":
+WEB3FORMS_KEY=""
+
+# Where notifications are sent (already set in wrangler.toml [vars]):
+NOTIFY_EMAIL="vigorwolf1@gmail.com"

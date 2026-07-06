@@ -1,0 +1,41 @@
+# ============================================================================
+#  VIGORWOLF — Cloudflare Pages + Functions + D1 configuration
+# ============================================================================
+#  This file tells Cloudflare which D1 database to bind to your Pages
+#  Functions. You normally deploy the frontend by connecting the Git repo in
+#  the Cloudflare dashboard, but this file is required for local dev
+#  (`npm run dev`) and for binding D1.
+#
+#  After you create your D1 database (see README > Deployment), paste the
+#  database_id it gives you into the `database_id` field below.
+# ============================================================================
+
+name = "vigorwolf"
+pages_build_output_dir = "public"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+# --- D1 database binding -----------------------------------------------------
+# The code refers to this database as `env.DB`.
+[[d1_databases]]
+binding = "DB"
+database_name = "vigorwolf-db"
+database_id = "PASTE_YOUR_D1_DATABASE_ID_HERE"
+
+# --- Environment variables (safe defaults; secrets set in dashboard) ---------
+# These non-secret vars can live here. SECRETS (email keys, session secret)
+# should be added in the Cloudflare dashboard: Pages > Settings > Variables.
+[vars]
+SITE_NAME = "VIGORWOLF"
+# Where order/contact/signup notifications are emailed:
+NOTIFY_EMAIL = "vigorwolf1@gmail.com"
+# EMAIL_PROVIDER can be "resend", "web3forms", or "" (disabled -> saved to D1 only)
+EMAIL_PROVIDER = ""
+
+# ----------------------------------------------------------------------------
+#  SECRETS — DO NOT put real keys here. Add them in the dashboard or via CLI:
+#    npx wrangler pages secret put SESSION_SECRET
+#    npx wrangler pages secret put RESEND_API_KEY
+#    npx wrangler pages secret put WEB3FORMS_KEY
+#    npx wrangler pages secret put RESEND_FROM     # e.g. "VIGORWOLF <orders@yourdomain.com>"
+# ----------------------------------------------------------------------------

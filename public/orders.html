@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Orders — VIGORWOLF</title>
+  <link rel="icon" href="/assets/media/logo-red.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <section class="section">
+      <div class="container" style="max-width:820px">
+        <span class="eyebrow">History</span>
+        <h1 class="display mt-8 mb-24">My Orders</h1>
+        <div data-orders><p class="text-muted">Loading…</p></div>
+      </div>
+    </section>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/assets/js/config.js?v=2"></script>
+  <script src="/assets/js/api.js?v=2"></script>
+  <script src="/assets/js/store.js?v=2"></script>
+  <script src="/assets/js/ui.js?v=2"></script>
+  <script>
+    (async function () {
+      if (!VW.User.isLoggedIn()) { location.href = "/login.html?next=/orders.html"; return; }
+      const wrap = document.querySelector("[data-orders]");
+      const email = VW.User.current().email;
+      let orders = [];
+      try { orders = (await API.ordersByEmail(email)).orders; }
+      catch (e) { wrap.innerHTML = "<p class='text-muted'>Could not load orders.</p>"; return; }
+
+      if (!orders.length) {
+        wrap.innerHTML = `<div class="empty"><h3>No orders yet</h3><p>Your orders will appear here once you place them.</p><a class="btn" href="/shop.html">Shop the Drop</a></div>`;
+        return;
+      }
+      wrap.innerHTML = orders.map(o => `
+        <div class="panel mb-16">
+          <div class="flex between center wrap gap-16">
+            <div><span class="mono" style="color:var(--muted-2)">${new Date(o.createdAt+' UTC').toLocaleDateString()}</span>
+              <div class="display" style="font-size:1.3rem">${o.orderNumber}</div></div>
+            <span class="pill pill--${o.status.toLowerCase()}">${o.status}</span>
+          </div>
+          <div class="mt-16">${o.items.map(i => `<div class="summary-row"><span>${i.name} <span style="color:var(--muted-2)">×${i.qty} · ${i.size}/${i.color}</span></span><span>${VW.money(i.price*i.qty)}</span></div>`).join("")}</div>
+          <div class="summary-row summary-row--total"><span>Total · ${o.paymentMethod}</span><span>${VW.money(o.total)}</span></div>
+        </div>`).join("");
+    })();
+  </script>
+</body>
+</html>

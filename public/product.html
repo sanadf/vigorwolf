@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Product — VIGORWOLF</title>
+  <link rel="icon" href="/assets/media/logo-red.png">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+</head>
+<body>
+  <header id="site-header"></header>
+  <main>
+    <section class="section" data-pdp>
+      <div class="container">
+        <p class="text-muted">Loading…</p>
+      </div>
+    </section>
+
+    <section class="section band hidden" data-related-section>
+      <div class="container">
+        <div class="section-head"><span class="eyebrow">More From the Pack</span><h2 class="display mt-8">Related</h2></div>
+        <div class="grid-products" data-related></div>
+      </div>
+    </section>
+  </main>
+  <footer id="site-footer"></footer>
+
+  <script src="/assets/js/config.js?v=2"></script>
+  <script src="/assets/js/api.js?v=2"></script>
+  <script src="/assets/js/store.js?v=2"></script>
+  <script src="/assets/js/ui.js?v=2"></script>
+  <script>
+    (async function () {
+      const wrap = document.querySelector("[data-pdp]").firstElementChild;
+      const slug = new URLSearchParams(location.search).get("slug");
+      if (!slug) { wrap.innerHTML = "<p class='text-muted'>No product specified.</p>"; return; }
+
+      let product, related = [];
+      try {
+        const res = await API.product(slug);
+        product = res.product; related = res.related || [];
+      } catch (e) {
+        wrap.innerHTML = `<div class="empty"><h3>Not Found</h3><p>This product does not exist or was removed.</p><a class="btn" href="/shop.html">Back to Shop</a></div>`;
+        return;
+      }
+
+      const buyable = product.status !== "sold_out" && product.status !== "coming_soon";
+      const gallery = product.gallery && product.gallery.length ? product.gallery : [product.image];
+      const statusText = { sold_out: "Sold Out", coming_soon: "Coming Soon", low_stock: "Low Stock — order fast", new_drop: "New Drop", active: "In Stock" }[product.status] || "In Stock";
+
+      wrap.innerHTML = `
+        <nav class="mono mb-24" style="color:var(--muted-2)"><a href="/shop.html">Shop</a> / <a href="/shop.html?cat=${encodeURIComponent(product.category)}">${product.category}</a> / ${product.name}</nav>
+        <div class="pdp">
+          <div>
+            <div class="gallery__main"><img src="${gallery[0] || '/assets/media/logo-white.png'}" alt="${product.name}" data-main></div>
+            <div class="gallery__thumbs">
+              ${gallery.map((g, i) => `<button data-thumb="${i}" aria-current="${i===0}"><img src="${g}" alt=""></button>`).join("")}
+            </div>
+          </div>
+          <div>
+            <div class="flex gap-8 wrap mb-16">${VW.badgeFor(product)}</div>
+            <span class="eyebrow">${product.dropName || 'VIGORWOLF'} · ${product.category}</span>
+            <h1 class="display mt-8" style="font-size:clamp(2rem,5vw,3.2rem)">${product.name}</h1>
+            <div class="pdp__price">${VW.priceHTML(product)}</div>
+            <p class="text-muted">${product.description || ''}</p>
+
+            <div class="mt-24">
+              <div class="field"><label>Size <span class="req">*</span></label>
+                <div class="chips" data-sizes>
+                  ${(product.sizes||[]).map((s,i)=>`<button class="chip" data-size="${s}" aria-pressed="${i===0}">${s}</button>`).join("") || '<span class="text-muted">One size</span>'}
+                </div>
+              </div>
+              <div class="field"><label>Color</label>
+                <div class="chips" data-colors>
+                  ${(product.colors||['Black']).map((c,i)=>`<button class="chip" data-color="${c}" aria-pressed="${i===0}">${c}</button>`).join("")}
+                </div>
+              </div>
+              <div class="field"><label>Quantity</label>
+                <div class="stepper">
+                  <button data-dec aria-label="Decrease">−</button>
+                  <input data-qty value="1" inputmode="numeric" aria-label="Quantity">
+                  <button data-inc aria-label="Increase">+</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex gap-16 wrap mt-16">
+              ${buyable
+                ? '<button class="btn btn--lg grow" data-add>Add to Cart</button>'
+                : `<button class="btn btn--lg grow" disabled>${statusText}</button>`}
+              <button class="btn btn--lg btn--ghost" data-wish aria-label="Wishlist">${VW.icons.heart}</button>
+            </div>
+            <p class="mono mt-16" style="color:${product.status==='low_stock'?'var(--amber)':'var(--muted)'}">◆ ${statusText}${product.modelInfo ? ' · ' + product.modelInfo : ''}</p>
+
+            <dl class="spec-list">
+              ${product.material ? `<div><dt>Material</dt><dd>${product.material}</dd></div>` : ''}
+              ${product.gsm ? `<div><dt>Weight</dt><dd>${product.gsm}</dd></div>` : ''}
+              ${product.fit ? `<div><dt>Fit</dt><dd>${product.fit}</dd></div>` : ''}
+              ${product.modelInfo ? `<div><dt>Model</dt><dd>${product.modelInfo}</dd></div>` : ''}
+              ${product.care ? `<div><dt>Care</dt><dd>${product.care}</dd></div>` : ''}
+              <div><dt>Drop</dt><dd>${product.dropName || 'Drop One'}</dd></div>
+            </dl>
+          </div>
+        </div>`;
+
+      // gallery thumbs
+      const main = wrap.querySelector("[data-main]");
+      wrap.querySelectorAll("[data-thumb]").forEach(btn => btn.addEventListener("click", () => {
+        main.src = gallery[+btn.getAttribute("data-thumb")];
+        wrap.querySelectorAll("[data-thumb]").forEach(b => b.setAttribute("aria-current", b === btn));
+      }));
+
+      // selectors
+      const pickGroup = (sel, attr) => {
+        let val = wrap.querySelector(`[${attr}][aria-pressed="true"]`)?.getAttribute(attr) || "";
+        wrap.querySelectorAll(`[${attr}]`).forEach(b => b.addEventListener("click", () => {
+          wrap.querySelectorAll(`[${attr}]`).forEach(x => x.setAttribute("aria-pressed", x === b));
+          val = b.getAttribute(attr);
+        }));
+        return () => val;
+      };
+      const getSize = pickGroup("[data-sizes]", "data-size");
+      const getColor = pickGroup("[data-colors]", "data-color");
+
+      // qty
+      const qtyEl = wrap.querySelector("[data-qty]");
+      wrap.querySelector("[data-dec]").addEventListener("click", () => qtyEl.value = Math.max(1, (+qtyEl.value||1)-1));
+      wrap.querySelector("[data-inc]").addEventListener("click", () => qtyEl.value = (+qtyEl.value||1)+1);
+
+      // add to cart
+      const addBtn = wrap.querySelector("[data-add]");
+      if (addBtn) addBtn.addEventListener("click", () => {
+        VW.Cart.add({
+          productId: product.id, slug: product.slug, name: product.name,
+          price: product.onSale ? product.salePrice : product.price, image: gallery[0],
+          size: getSize() || "OS", color: getColor() || "Black", qty: Math.max(1, +qtyEl.value||1),
+        });
+        VW.toast(`Added — ${product.name}`, "ok");
+      });
+
+      // wishlist
+      const wishBtn = wrap.querySelector("[data-wish]");
+      const syncWish = () => wishBtn.style.color = VW.Wishlist.has(product.slug) ? "var(--red)" : "";
+      syncWish();
+      wishBtn.addEventListener("click", () => {
+        const on = VW.Wishlist.toggle(product.slug);
+        syncWish(); VW.toast(on ? "Saved to wishlist" : "Removed from wishlist");
+      });
+
+      // related
+      if (related.length) {
+        document.querySelector("[data-related-section]").classList.remove("hidden");
+        VW.setProductIndex(related);
+        document.querySelector("[data-related]").innerHTML = related.map(VW.productCard).join("");
+        VW.initReveal();
+      }
+      document.title = `${product.name} — VIGORWOLF`;
+    })();
+  </script>
+</body>
+</html>
