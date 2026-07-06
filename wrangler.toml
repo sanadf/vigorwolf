@@ -1,5 +1,5 @@
 # ============================================================================
-#  VIGORWOLF — Cloudflare Pages + Functions + D1 configuration
+#  VIGORWOLF ??? Cloudflare Pages + Functions + D1 configuration
 # ============================================================================
 #  This file tells Cloudflare which D1 database to bind to your Pages
 #  Functions. You normally deploy the frontend by connecting the Git repo in
@@ -30,14 +30,14 @@ SITE_NAME = "VIGORWOLF"
 # Where order/contact/signup notifications are emailed:
 NOTIFY_EMAIL = "vigorwolf1@gmail.com"
 # EMAIL_PROVIDER can be "resend", "web3forms", or "" (disabled -> saved to D1 only)
-EMAIL_PROVIDER = ""
+EMAIL_PROVIDER = "resend"
 # Admin login. Logging in with these once auto-creates/repairs the admin account.
 # Change the email here; for the PASSWORD set a secret in the dashboard
 # (npx wrangler pages secret put ADMIN_PASSWORD) or it defaults to VigorWolfAdmin123.
 ADMIN_EMAIL = "admin@vigorwolf.com"
 
 # ----------------------------------------------------------------------------
-#  SECRETS — DO NOT put real keys here. Add them in the dashboard or via CLI:
+#  SECRETS ??? DO NOT put real keys here. Add them in the dashboard or via CLI:
 #    npx wrangler pages secret put SESSION_SECRET
 #    npx wrangler pages secret put RESEND_API_KEY
 #    npx wrangler pages secret put WEB3FORMS_KEY
