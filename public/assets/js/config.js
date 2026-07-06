@@ -11,6 +11,16 @@ window.VW_CONFIG = {
   // The admin area lives at /admin (kept low-key in the UI).
   adminPath: "/admin/",
 
+  // Shipping fees (JD). Amman is cheaper; everywhere else pays "other".
+  // These are for DISPLAY at checkout — the server recomputes the real fee in
+  // functions/api/_lib/shipping.js (edit both if you change the rates).
+  shipping: { amman: 2, other: 3 },
+
+  // Optional Shopify integration. If enabled, the main "Shop the Drop" / "Shop Now"
+  // buttons point to your Shopify store instead of the built-in shop.
+  // See SHOPIFY.md for the full launch guide.
+  shopify: { enabled: false, url: "https://shop.vigorwolf.co" },
+
   // Fallback countdown date if the API/D1 is unreachable (ISO 8601).
   // The live value normally comes from the current Drop in the database.
   fallbackDropDate: "2026-07-11T20:00:00",

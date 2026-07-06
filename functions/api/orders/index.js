@@ -22,6 +22,7 @@ async function withItems(env, order) {
     pointsRedeemed: order.points_redeemed,
     pointsDiscount: order.points_discount_jd,
     pointsEarned: order.points_earned,
+    shipping: order.shipping_jd,
     total: order.total,
     createdAt: order.created_at,
     items: (results || []).map((i) => ({

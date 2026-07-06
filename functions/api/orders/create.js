@@ -8,6 +8,7 @@ import { sendNotification } from "../_lib/email.js";
 import {
   validateCoupon, getBalance, ensureUser, pointsToJd, earnedPointsFor, round2,
 } from "../_lib/loyalty.js";
+import { shippingFor } from "../_lib/shipping.js";
 
 function orderNumber() {
   const d = new Date();
@@ -65,8 +66,9 @@ export async function onRequestPost(context) {
       pointsDiscount = round2(pointsToJd(redeemPoints));
     }
 
-    // 4) Final total
-    const total = round2(afterCoupon - pointsDiscount);
+    // 4) Shipping (added after discounts) + final total
+    const shipping = shippingFor(c.city);
+    const total = round2(afterCoupon - pointsDiscount + shipping);
     // 5) Points earned (from subtotal before discounts, logged-in only)
     const pointsEarned = loggedIn ? earnedPointsFor(subtotal) : 0;
     const paymentMethod = body.paymentMethod || "Cash on Delivery";
@@ -76,13 +78,13 @@ export async function onRequestPost(context) {
     const res = await env.DB.prepare(
       `INSERT INTO orders (order_number, customer_name, phone, email, city, address, notes,
         payment_method, status, subtotal, total, user_email,
-        coupon_code, coupon_discount_jd, points_redeemed, points_discount_jd, points_earned, total_after_discounts)
-       VALUES (?,?,?,?,?,?,?,?,'Pending',?,?,?,?,?,?,?,?,?)`
+        coupon_code, coupon_discount_jd, points_redeemed, points_discount_jd, points_earned, shipping_jd, total_after_discounts)
+       VALUES (?,?,?,?,?,?,?,?,'Pending',?,?,?,?,?,?,?,?,?,?)`
     ).bind(
       number, String(c.name).trim(), String(c.phone).trim(), String(c.email).trim().toLowerCase(),
       String(c.city).trim(), String(c.address).trim(), String(c.notes || "").trim(),
       paymentMethod, subtotal, total, userEmail,
-      couponCode, couponDiscount, redeemPoints, pointsDiscount, pointsEarned, total
+      couponCode, couponDiscount, redeemPoints, pointsDiscount, pointsEarned, shipping, total
     ).run();
     const orderId = res.meta.last_row_id;
 
@@ -140,7 +142,8 @@ Items:
 ${lines}
 
 Subtotal: ${subtotal.toFixed(2)} JD
-${discountLines}Total: ${total.toFixed(2)} JD
+${discountLines}Shipping (${c.city}): ${shipping.toFixed(2)} JD
+Total: ${total.toFixed(2)} JD
 ${loggedIn ? `Points earned: ${pointsEarned} · New balance: ${newBalance}` : "Guest order (no points)"}`,
       replyTo: String(c.email).trim(),
     }));
@@ -151,7 +154,7 @@ ${loggedIn ? `Points earned: ${pointsEarned} · New balance: ${newBalance}` : "G
         orderNumber: number, customerName: c.name, phone: c.phone, email: c.email,
         city: c.city, address: c.address, notes: c.notes || "", paymentMethod,
         status: "Pending", subtotal, couponCode, couponDiscount,
-        pointsRedeemed: redeemPoints, pointsDiscount, pointsEarned, total, items: resolved,
+        pointsRedeemed: redeemPoints, pointsDiscount, pointsEarned, shipping, total, items: resolved,
       },
       loyalty: loggedIn ? { pointsEarned, pointsRedeemed: redeemPoints, newBalance } : null,
     });

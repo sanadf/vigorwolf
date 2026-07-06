@@ -11,6 +11,8 @@ Premium dark streetwear / gymwear storefront with a **real backend** — built t
 - **Cart:** browser `localStorage` (pre-checkout only) — everything else persists in D1
 - **Loyalty:** server-side points (100 pts per 10 JD spent · 100 pts = 1 JD off) tied to the customer's email
 - **Coupons:** percentage or fixed discounts, min-order / expiry / usage limits, managed in admin
+- **Shipping:** auto-added at checkout — Amman 2 JD, everywhere else 3 JD
+- **Selling with Shopify later?** See **[SHOPIFY.md](SHOPIFY.md)** — keep this as your brand site, one domain, `shop.` subdomain.
 
 `Culture. Tribe. Lifestyle.` · Built for the Relentless.
 
@@ -189,7 +191,9 @@ Redeploy after adding variables. To notify a different address, change `NOTIFY_E
 
 | # | What | Where |
 |---|------|-------|
-| 5 | **Admin email / password** | Update the seeded row in `migrations/0001_init.sql` (the password is a PBKDF2 hash — see below), or change it live in D1. |
+| 5 | **Admin email / password** | Set `ADMIN_EMAIL` (wrangler.toml) and the `ADMIN_PASSWORD` secret in the dashboard. Logging in once with these **auto-creates/repairs** the admin account — so a wrong/empty DB can't lock you out. Defaults: `admin@vigorwolf.com` / `VigorWolfAdmin123`. |
+| 5b | **Shipping fees** | `functions/api/_lib/shipping.js` (server truth) + `shipping` in `public/assets/js/config.js` (checkout display). Amman = 2 JD, other = 3 JD. |
+| 5c | **Coupons** | Fully managed in **Admin → Coupons** — add, edit the discount rate, deactivate, or delete, with min-order / expiry / usage limits. |
 | 6 | **Products** | Easiest: **Admin → Products** (add/edit/delete, price, sizes, colors, stock, status, image URL, etc.). Or edit the seed in `migrations/0001_init.sql`. |
 | 7 | **Brand colors** | `public/assets/css/styles.css` → the `:root { --bg / --surface / --red / ... }` block at the top. |
 | 8 | **Logo** | Replace `public/assets/media/logo-white.png` (white, transparent — used on the dark UI) and `logo-red.png` (favicon). Keep the same filenames, or update the references in `public/assets/js/ui.js` + `admin.js`. |

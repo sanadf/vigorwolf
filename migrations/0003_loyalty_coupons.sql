@@ -44,6 +44,7 @@ ALTER TABLE orders ADD COLUMN coupon_discount_jd REAL NOT NULL DEFAULT 0;
 ALTER TABLE orders ADD COLUMN points_redeemed INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE orders ADD COLUMN points_discount_jd REAL NOT NULL DEFAULT 0;
 ALTER TABLE orders ADD COLUMN points_earned INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE orders ADD COLUMN shipping_jd REAL NOT NULL DEFAULT 0;
 ALTER TABLE orders ADD COLUMN total_after_discounts REAL NOT NULL DEFAULT 0;
 
 INSERT OR IGNORE INTO coupons (code, type, value, active, min_order_amount, max_uses, expires_at)

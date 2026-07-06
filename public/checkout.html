@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Checkout — VIGORWOLF</title>
   <link rel="icon" href="/assets/media/logo-red.png">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=3">
 </head>
 <body>
   <header id="site-header"></header>
@@ -83,10 +83,10 @@
   </main>
   <footer id="site-footer"></footer>
 
-  <script src="/assets/js/config.js?v=2"></script>
-  <script src="/assets/js/api.js?v=2"></script>
-  <script src="/assets/js/store.js?v=2"></script>
-  <script src="/assets/js/ui.js?v=2"></script>
+  <script src="/assets/js/config.js?v=3"></script>
+  <script src="/assets/js/api.js?v=3"></script>
+  <script src="/assets/js/store.js?v=3"></script>
+  <script src="/assets/js/ui.js?v=3"></script>
   <script>
     (async function () {
       const form = document.querySelector("[data-checkout]");
@@ -106,9 +106,17 @@
 
       const state = { couponCode: "", couponDiscount: 0, redeemPoints: 0, pointsDiscount: 0, balance: 0 };
       const afterCoupon = () => round2(subtotal - state.couponDiscount);
-      const total = () => round2(afterCoupon() - state.pointsDiscount);
+      // Shipping: Amman is cheaper, everywhere else pays "other". Recomputed live from the City field.
+      const rates = VW_CONFIG.shipping || { amman: 2, other: 3 };
+      const shipping = () => {
+        const c = (form.city.value || "").trim().toLowerCase();
+        return (c.includes("amman") || c.includes("عمان")) ? rates.amman : rates.other;
+      };
+      const total = () => round2(afterCoupon() - state.pointsDiscount + shipping());
 
       function renderSummary() {
+        const c = (form.city.value || "").trim();
+        const shipLabel = c ? (shipping() === rates.amman ? "Amman" : c) : "enter city";
         let rows = `<h3 class="display" style="font-size:1.3rem">Your Order</h3>
           <div class="mt-16">${items.map(i => `
             <div class="summary-row"><span>${i.name} <span style="color:var(--muted-2)">×${i.qty} · ${i.size}/${i.color}</span></span><span>${money(i.price*i.qty)}</span></div>`).join("")}</div>
@@ -117,16 +125,20 @@
           rows += `<div class="summary-row"><span>Coupon (${state.couponCode})</span><span>− ${money(state.couponDiscount)}</span></div>`;
         if (state.pointsDiscount > 0)
           rows += `<div class="summary-row"><span>Points (${state.redeemPoints})</span><span>− ${money(state.pointsDiscount)}</span></div>`;
+        rows += `<div class="summary-row"><span>Shipping <span style="color:var(--muted-2)">(${shipLabel})</span></span><span>${money(shipping())}</span></div>`;
         rows += `<div class="summary-row summary-row--total"><span>Total</span><span>${money(total())}</span></div>`;
         summaryEl.innerHTML = rows;
       }
       renderSummary();
+      // Recompute shipping/total whenever the city changes.
+      form.city.addEventListener("input", renderSummary);
 
       const profile = VW.User.profile();
       if (profile) {
         form.name.value = profile.name || ""; form.email.value = profile.email || "";
         form.phone.value = profile.phone || ""; form.city.value = profile.city || "";
         form.address.value = profile.address || "";
+        renderSummary(); // reflect prefilled city in shipping
       }
 
       if (user) {

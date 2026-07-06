@@ -70,6 +70,7 @@ CREATE TABLE IF NOT EXISTS orders (
   points_redeemed       INTEGER NOT NULL DEFAULT 0,
   points_discount_jd    REAL NOT NULL DEFAULT 0,
   points_earned         INTEGER NOT NULL DEFAULT 0,
+  shipping_jd           REAL NOT NULL DEFAULT 0,
   total_after_discounts REAL NOT NULL DEFAULT 0,
   created_at     TEXT NOT NULL DEFAULT (datetime('now'))
 );

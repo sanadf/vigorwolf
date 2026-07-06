@@ -31,6 +31,10 @@ SITE_NAME = "VIGORWOLF"
 NOTIFY_EMAIL = "vigorwolf1@gmail.com"
 # EMAIL_PROVIDER can be "resend", "web3forms", or "" (disabled -> saved to D1 only)
 EMAIL_PROVIDER = ""
+# Admin login. Logging in with these once auto-creates/repairs the admin account.
+# Change the email here; for the PASSWORD set a secret in the dashboard
+# (npx wrangler pages secret put ADMIN_PASSWORD) or it defaults to VigorWolfAdmin123.
+ADMIN_EMAIL = "admin@vigorwolf.com"
 
 # ----------------------------------------------------------------------------
 #  SECRETS — DO NOT put real keys here. Add them in the dashboard or via CLI:

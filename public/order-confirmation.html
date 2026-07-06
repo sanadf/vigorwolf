@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Order Confirmed — VIGORWOLF</title>
   <link rel="icon" href="/assets/media/logo-red.png">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=3">
 </head>
 <body>
   <header id="site-header"></header>
@@ -18,10 +18,10 @@
   </main>
   <footer id="site-footer"></footer>
 
-  <script src="/assets/js/config.js?v=2"></script>
-  <script src="/assets/js/api.js?v=2"></script>
-  <script src="/assets/js/store.js?v=2"></script>
-  <script src="/assets/js/ui.js?v=2"></script>
+  <script src="/assets/js/config.js?v=3"></script>
+  <script src="/assets/js/api.js?v=3"></script>
+  <script src="/assets/js/store.js?v=3"></script>
+  <script src="/assets/js/ui.js?v=3"></script>
   <script>
     (async function () {
       const wrap = document.querySelector("[data-conf]");
@@ -68,6 +68,7 @@
           <div class="summary-row mt-8"><span>Subtotal</span><span>${VW.money(o.subtotal)}</span></div>
           ${o.couponDiscount > 0 ? `<div class="summary-row"><span>Coupon (${o.couponCode})</span><span>− ${VW.money(o.couponDiscount)}</span></div>` : ""}
           ${o.pointsDiscount > 0 ? `<div class="summary-row"><span>Points redeemed (${o.pointsRedeemed})</span><span>− ${VW.money(o.pointsDiscount)}</span></div>` : ""}
+          <div class="summary-row"><span>Shipping (${o.city})</span><span>${VW.money(o.shipping)}</span></div>
           <div class="summary-row summary-row--total"><span>Total (${o.paymentMethod})</span><span>${VW.money(o.total)}</span></div>
 
           ${o.pointsEarned > 0 ? `<div class="panel mt-16" style="border-color:var(--line-2)">

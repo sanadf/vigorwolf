@@ -6,7 +6,7 @@
   <title>Orders — VIGORWOLF Admin</title>
   <meta name="robots" content="noindex">
   <link rel="icon" href="/assets/media/logo-red.png">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=2">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=3">
 </head>
 <body>
   <div class="admin-shell">
@@ -40,9 +40,9 @@
     <div class="modal" data-modal-body></div>
   </div>
 
-  <script src="/assets/js/config.js?v=2"></script>
-  <script src="/assets/js/api.js?v=2"></script>
-  <script src="/assets/js/admin.js?v=2"></script>
+  <script src="/assets/js/config.js?v=3"></script>
+  <script src="/assets/js/api.js?v=3"></script>
+  <script src="/assets/js/admin.js?v=3"></script>
   <script>
     ADMIN.guard("orders.html", async () => {
       const rowsEl = document.querySelector("[data-rows]");
@@ -86,6 +86,7 @@
           <div class="summary-row"><span>Subtotal</span><span>${ADMIN.money(o.subtotal)}</span></div>
           ${o.couponDiscount > 0 ? `<div class="summary-row"><span>Coupon (${ADMIN.esc(o.couponCode)})</span><span>− ${ADMIN.money(o.couponDiscount)}</span></div>` : ""}
           ${o.pointsDiscount > 0 ? `<div class="summary-row"><span>Points redeemed (${o.pointsRedeemed})</span><span>− ${ADMIN.money(o.pointsDiscount)}</span></div>` : ""}
+          <div class="summary-row"><span>Shipping (${ADMIN.esc(o.city)})</span><span>${ADMIN.money(o.shipping)}</span></div>
           <div class="summary-row summary-row--total"><span>Total · ${ADMIN.esc(o.paymentMethod)}</span><span>${ADMIN.money(o.total)}</span></div>
           ${o.pointsEarned > 0 ? `<p class="mono mt-8" style="color:var(--green)">◆ ${o.pointsEarned} points earned on this order</p>` : ""}
           <div class="divider"></div>

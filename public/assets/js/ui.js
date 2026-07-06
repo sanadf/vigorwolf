@@ -280,9 +280,30 @@
   }
   window.VW.bindSignupForms = bindSignupForms;
 
+  /* --------------------------------------------------------------- shopify hook */
+  // When VW_CONFIG.shopify.enabled is true, all internal shop links are
+  // redirected to your Shopify store (opens in a new tab). This lets you launch
+  // selling through Shopify while keeping this site as the brand front-end,
+  // WITHOUT deleting the built-in store. Flip it off to use the built-in shop.
+  // See SHOPIFY.md.
+  function applyShopify() {
+    const sh = cfg.shopify;
+    if (!sh || !sh.enabled || !sh.url) return;
+    const shopHrefs = ["/shop.html", "/drop.html", "/cart.html"];
+    document.querySelectorAll("a[href]").forEach((a) => {
+      const href = a.getAttribute("href").split("?")[0];
+      if (shopHrefs.includes(href) || a.hasAttribute("data-shop-cta")) {
+        a.setAttribute("href", sh.url);
+        a.setAttribute("target", "_blank");
+        a.setAttribute("rel", "noopener");
+      }
+    });
+  }
+  window.VW.applyShopify = applyShopify;
+
   /* --------------------------------------------------------------- boot */
   function boot() {
-    renderHeader(); renderFooter(); initReveal(); initClock(); bindSignupForms();
+    renderHeader(); renderFooter(); initReveal(); initClock(); bindSignupForms(); applyShopify();
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();
