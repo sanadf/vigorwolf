@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Product — VIGORWOLF</title>
-  <link rel="icon" type="image/png" href="/assets/media/favicon.png?v=4">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=4">
+  <link rel="icon" type="image/png" href="/assets/media/favicon.png?v=5">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=5">
 </head>
 <body>
   <header id="site-header"></header>
@@ -25,10 +25,10 @@
   </main>
   <footer id="site-footer"></footer>
 
-  <script src="/assets/js/config.js?v=4"></script>
-  <script src="/assets/js/api.js?v=4"></script>
-  <script src="/assets/js/store.js?v=4"></script>
-  <script src="/assets/js/ui.js?v=4"></script>
+  <script src="/assets/js/config.js?v=5"></script>
+  <script src="/assets/js/api.js?v=5"></script>
+  <script src="/assets/js/store.js?v=5"></script>
+  <script src="/assets/js/ui.js?v=5"></script>
   <script>
     (async function () {
       const wrap = document.querySelector("[data-pdp]").firstElementChild;
@@ -44,9 +44,16 @@
         return;
       }
 
-      const buyable = product.status !== "sold_out" && product.status !== "coming_soon";
-      const gallery = product.gallery && product.gallery.length ? product.gallery : [product.image];
-      const statusText = { sold_out: "Sold Out", coming_soon: "Coming Soon", low_stock: "Low Stock — order fast", new_drop: "New Drop", active: "In Stock" }[product.status] || "In Stock";
+      const sizeStock = product.sizeStock || {};
+      const stockForSize = (s) => (sizeStock[String(s).toUpperCase()] ?? (product.stock || 0));
+      const firstAvail = (product.availableSizes && product.availableSizes[0]) || "";
+      const soldOut = product.status === "sold_out" || (product.inStock === false && product.status !== "coming_soon");
+      const buyable = product.status !== "coming_soon" && !soldOut;
+      // Two images: [image1, image2]. Fall back to legacy gallery/image.
+      const gallery = (product.images && product.images.length ? product.images
+        : (product.gallery && product.gallery.length ? product.gallery : [product.image])).filter(Boolean);
+      const statusText = soldOut ? "Sold Out"
+        : { coming_soon: "Coming Soon", low_stock: "Low Stock — order fast", new_drop: "New Drop", active: "In Stock" }[product.status] || "In Stock";
 
       wrap.innerHTML = `
         <nav class="mono mb-24" style="color:var(--muted-2)"><a href="/shop.html">Shop</a> / <a href="/shop.html?cat=${encodeURIComponent(product.category)}">${product.category}</a> / ${product.name}</nav>
@@ -67,8 +74,12 @@
             <div class="mt-24">
               <div class="field"><label>Size <span class="req">*</span></label>
                 <div class="chips" data-sizes>
-                  ${(product.sizes||[]).map((s,i)=>`<button class="chip" data-size="${s}" aria-pressed="${i===0}">${s}</button>`).join("") || '<span class="text-muted">One size</span>'}
+                  ${(product.sizes||[]).map((s)=>{
+                    const oos = stockForSize(s) <= 0;
+                    return `<button class="chip" data-size="${s}" aria-pressed="${s===firstAvail}"${oos?' disabled title="Out of stock"':''}>${s}</button>`;
+                  }).join("") || '<span class="text-muted">One size</span>'}
                 </div>
+                ${firstAvail ? '' : '<p class="field-error mt-8">All sizes are currently sold out.</p>'}
               </div>
               <div class="field"><label>Color</label>
                 <div class="chips" data-colors>
@@ -127,15 +138,21 @@
       wrap.querySelector("[data-dec]").addEventListener("click", () => qtyEl.value = Math.max(1, (+qtyEl.value||1)-1));
       wrap.querySelector("[data-inc]").addEventListener("click", () => qtyEl.value = (+qtyEl.value||1)+1);
 
-      // add to cart
+      // add to cart (validates the selected size is in stock)
       const addBtn = wrap.querySelector("[data-add]");
       if (addBtn) addBtn.addEventListener("click", () => {
+        const size = getSize();
+        const avail = stockForSize(size);
+        if (!size) { VW.toast("Please choose a size"); return; }
+        if (avail <= 0) { VW.toast(`Size ${size} is out of stock`); return; }
+        let qty = Math.max(1, +qtyEl.value || 1);
+        if (qty > avail) { qty = avail; qtyEl.value = avail; VW.toast(`Only ${avail} left in size ${size}`); }
         VW.Cart.add({
           productId: product.id, slug: product.slug, name: product.name,
           price: product.onSale ? product.salePrice : product.price, image: gallery[0],
-          size: getSize() || "OS", color: getColor() || "Black", qty: Math.max(1, +qtyEl.value||1),
+          size, color: getColor() || "Black", qty,
         });
-        VW.toast(`Added — ${product.name}`, "ok");
+        VW.toast(`Added — ${product.name} (${size})`, "ok");
       });
 
       // wishlist

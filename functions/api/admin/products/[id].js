@@ -24,7 +24,13 @@ const FIELD_MAP = {
   featured: ["featured", (v) => (v ? 1 : 0)],
   hidden: ["hidden", (v) => (v ? 1 : 0)],
   image: ["image_url", (v) => String(v)],
+  image1: ["image_1", (v) => String(v || "").trim()],
+  image2: ["image_2", (v) => String(v || "").trim()],
   gallery: ["gallery", (v) => JSON.stringify(Array.isArray(v) ? v : [])],
+  stockS: ["stock_s", (v) => Math.max(0, parseInt(v, 10) || 0)],
+  stockM: ["stock_m", (v) => Math.max(0, parseInt(v, 10) || 0)],
+  stockL: ["stock_l", (v) => Math.max(0, parseInt(v, 10) || 0)],
+  stockXL: ["stock_xl", (v) => Math.max(0, parseInt(v, 10) || 0)],
 };
 
 export async function onRequestPatch(context) {
@@ -39,6 +45,13 @@ export async function onRequestPatch(context) {
     if (!map) continue;
     sets.push(`${map[0]} = ?`);
     binds.push(map[1](val));
+  }
+  // image_1 also mirrors the legacy image_url (used by cart/order thumbnails).
+  if (b.image1 != null) { sets.push("image_url = ?"); binds.push(String(b.image1 || "").trim()); }
+  // When all four size stocks are provided, keep the legacy total `stock` in sync.
+  if (["stockS", "stockM", "stockL", "stockXL"].every((k) => b[k] != null)) {
+    const total = ["stockS", "stockM", "stockL", "stockXL"].reduce((s, k) => s + Math.max(0, parseInt(b[k], 10) || 0), 0);
+    sets.push("stock = ?"); binds.push(total);
   }
   if (!sets.length) return fail("No valid fields to update.");
   binds.push(params.id);

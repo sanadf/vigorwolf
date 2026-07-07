@@ -44,8 +44,14 @@ CREATE TABLE IF NOT EXISTS products (
   drop_name   TEXT DEFAULT 'Drop One',
   featured    INTEGER NOT NULL DEFAULT 0,      -- 0/1
   hidden      INTEGER NOT NULL DEFAULT 0,      -- 0/1 (admin can hide)
-  image_url   TEXT DEFAULT '',
-  gallery     TEXT DEFAULT '[]',       -- JSON array of image URLs
+  image_url   TEXT DEFAULT '',         -- legacy main image (mirrors image_1)
+  image_1     TEXT DEFAULT '',         -- primary product image
+  image_2     TEXT DEFAULT '',         -- secondary / hover image
+  gallery     TEXT DEFAULT '[]',       -- JSON array of image URLs (legacy)
+  stock_s     INTEGER NOT NULL DEFAULT 0,      -- per-size inventory
+  stock_m     INTEGER NOT NULL DEFAULT 0,
+  stock_l     INTEGER NOT NULL DEFAULT 0,
+  stock_xl    INTEGER NOT NULL DEFAULT 0,
   created_at  TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
@@ -159,28 +165,31 @@ INSERT OR IGNORE INTO admin_users (email, password) VALUES
 
 -- Products -------------------------------------------------------------------
 INSERT OR IGNORE INTO products
-(name, slug, price, sale_price, category, description, material, fit, care, gsm, model_info, colors, sizes, stock, status, drop_name, featured, hidden, image_url, gallery)
+(name, slug, price, sale_price, category, description, material, fit, care, gsm, model_info, colors, sizes, stock, status, drop_name, featured, hidden, image_url, image_1, image_2, gallery, stock_s, stock_m, stock_l, stock_xl)
 VALUES
 ('VIGORWOLF Redline Tee', 'vigorwolf-redline-tee', 27.99, NULL, 'T-Shirts',
  'A red-accent tee designed for sharp streetwear presence. Cut heavy, printed clean — built to be worn hard and read loud.',
  '100% combed cotton', 'Regular streetwear fit', 'Machine wash cold, inside out. Do not tumble dry. Do not iron print.',
  '240 GSM', 'Model is 1.80m / 78kg, wears size M',
- '["Black"]', '["S","M","L","XL"]', 6, 'low_stock', 'Drop One', 1, 0,
- '/assets/media/redline-tee.jpg', '["/assets/media/redline-tee.jpg"]'),
+ '["Black"]', '["S","M","L","XL"]', 13, 'low_stock', 'Drop One', 1, 0,
+ '/assets/media/redline-tee.jpg', '/assets/media/redline-tee.jpg', '/assets/media/hero.jpg',
+ '["/assets/media/redline-tee.jpg"]', 4, 6, 3, 0),
 
 ('VIGORWOLF Oversized Tanktop', 'vigorwolf-oversized-tanktop', 29.99, NULL, 'T-Shirts',
  'Oversized streetwear fit with a bold VIGORWOLF claw graphic. Dropped shoulders, open cut — made for the grind and the walk home.',
  '100% heavyweight cotton', 'Oversized drop-shoulder fit', 'Machine wash cold, inside out. Hang dry. Do not iron print.',
  '260 GSM', 'Model is 1.82m / 84kg, wears size L',
- '["Black"]', '["S","M","L","XL"]', 20, 'new_drop', 'Drop One', 1, 0,
- '/assets/media/tanktop.jpg', '["/assets/media/tanktop.jpg"]'),
+ '["Black"]', '["S","M","L","XL"]', 45, 'new_drop', 'Drop One', 1, 0,
+ '/assets/media/tanktop.jpg', '/assets/media/tanktop.jpg', '/assets/media/hero.jpg',
+ '["/assets/media/tanktop.jpg"]', 12, 15, 10, 8),
 
 ('VIGORWOLF Jersey', 'vigorwolf-jersey', 49.99, NULL, 'Hoodies',
  'Heavyweight jersey made for cold nights and sharp energy. Numbered back, matte finish, zero noise. The Pack uniform.',
  'Premium poly-cotton blend', 'Relaxed athletic fit', 'Machine wash cold. Hang dry. Do not bleach.',
  '300 GSM', 'Model is 1.85m / 88kg, wears size L',
  '["Black"]', '["S","M","L","XL"]', 0, 'coming_soon', 'Drop One', 1, 0,
- '/assets/media/jersey.jpg', '["/assets/media/jersey.jpg"]');
+ '/assets/media/jersey.jpg', '/assets/media/jersey.jpg', '/assets/media/hero.jpg',
+ '["/assets/media/jersey.jpg"]', 0, 0, 0, 0);
 
 -- Example coupon -------------------------------------------------------------
 INSERT OR IGNORE INTO coupons (code, type, value, active, min_order_amount, max_uses, expires_at)

@@ -2,7 +2,30 @@
 // GET /api/products?slug=xxx    -> single product by slug (with related)
 import { json, fail, parseJsonField } from "../_lib/http.js";
 
+// Per-size stock helpers. The four apparel sizes each have their own column;
+// any other size (e.g. "OS") falls back to the legacy total `stock`.
+export const SIZE_COLUMN = { S: "stock_s", M: "stock_m", L: "stock_l", XL: "stock_xl" };
+export function stockForSize(row, size) {
+  const col = SIZE_COLUMN[String(size || "").toUpperCase()];
+  if (col) return Math.max(0, row[col] ?? 0);
+  return Math.max(0, row.stock ?? 0); // non-standard size -> legacy stock
+}
+
 export function serializeProduct(row) {
+  const gallery = parseJsonField(row.gallery, []);
+  const image1 = row.image_1 || row.image_url || gallery[0] || "";
+  const image2 = row.image_2 || gallery[1] || "";
+  const offered = parseJsonField(row.sizes, []);
+  const sizeStock = {
+    S: Math.max(0, row.stock_s ?? 0), M: Math.max(0, row.stock_m ?? 0),
+    L: Math.max(0, row.stock_l ?? 0), XL: Math.max(0, row.stock_xl ?? 0),
+  };
+  const sizeTotal = sizeStock.S + sizeStock.M + sizeStock.L + sizeStock.XL;
+  // A size is available if it's offered AND has stock (>0). Non-S/M/L/XL sizes
+  // use the legacy total stock.
+  const availableSizes = offered.filter((s) => stockForSize(row, s) > 0);
+  const totalStock = sizeTotal > 0 ? sizeTotal : Math.max(0, row.stock ?? 0);
+
   return {
     id: row.id,
     name: row.name,
@@ -18,14 +41,19 @@ export function serializeProduct(row) {
     gsm: row.gsm,
     modelInfo: row.model_info,
     colors: parseJsonField(row.colors, []),
-    sizes: parseJsonField(row.sizes, []),
-    stock: row.stock,
+    sizes: offered,
+    availableSizes,
+    sizeStock,
+    stock: totalStock,
+    inStock: totalStock > 0,
     status: row.status,
     dropName: row.drop_name,
     featured: !!row.featured,
     hidden: !!row.hidden,
-    image: row.image_url,
-    gallery: parseJsonField(row.gallery, []),
+    image: image1,
+    image2,
+    images: [image1, image2].filter(Boolean),
+    gallery,
     createdAt: row.created_at,
   };
 }

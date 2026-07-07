@@ -283,8 +283,13 @@ h3.display { font-size: clamp(1.5rem, 3vw, 2.2rem); }
 }
 .card:hover { transform: translateY(-4px); border-color: var(--line-2); }
 .card__media { position: relative; aspect-ratio: 4/5; background: var(--charcoal); overflow: hidden; }
-.card__media img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s var(--ease), opacity .3s; }
+.card__media > a { display: block; width: 100%; height: 100%; }
+.card__media img { width: 100%; height: 100%; object-fit: cover; transition: transform .5s var(--ease), opacity .4s var(--ease); }
 .card:hover .card__media img { transform: scale(1.05); }
+/* second (hover) image sits on top of the first and fades in on hover */
+.card__img2 { position: absolute; inset: 0; opacity: 0; }
+.card.has-hover:hover .card__img1 { opacity: 0; }
+.card.has-hover:hover .card__img2 { opacity: 1; }
 .card__badges { position: absolute; top: 10px; left: 10px; display: flex; flex-direction: column; gap: 6px; z-index: 2; }
 .badge {
   font-family: var(--font-mono); font-size: .6rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase;

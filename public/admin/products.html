@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Products — VIGORWOLF Admin</title>
   <meta name="robots" content="noindex">
-  <link rel="icon" type="image/png" href="/assets/media/favicon.png?v=4">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=4">
+  <link rel="icon" type="image/png" href="/assets/media/favicon.png?v=5">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=5">
 </head>
 <body>
   <div class="admin-shell">
@@ -48,13 +48,19 @@
           <div class="field"><label>Status</label><select class="select" name="status" data-status></select></div>
         </div>
         <div class="form-2col">
-          <div class="field"><label>Stock</label><input class="input" name="stock" type="number"></div>
-          <div class="field"><label>Drop Name</label><input class="input" name="dropName" value="Drop One"></div>
+          <div class="field"><label>Sizes offered <span class="text-muted">(comma separated)</span></label><input class="input" name="sizes" placeholder="S, M, L, XL"></div>
+          <div class="field"><label>Colors <span class="text-muted">(comma separated)</span></label><input class="input" name="colors" placeholder="Black"></div>
         </div>
-        <div class="form-2col">
-          <div class="field"><label>Sizes <span class="text-muted">(comma separated)</span></label><input class="input" name="sizes" placeholder="S, M, L, XL"></div>
-          <div class="field"><label>Colors <span class="text-muted">(comma separated)</span></label><input class="input" name="colors" placeholder="Black, White"></div>
+        <div class="field">
+          <label>Stock per size <span class="text-muted">(0 = that size shows as sold out)</span></label>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px">
+            <div><span class="mono" style="font-size:.68rem;color:var(--muted-2)">S</span><input class="input" name="stockS" type="number" min="0" value="0"></div>
+            <div><span class="mono" style="font-size:.68rem;color:var(--muted-2)">M</span><input class="input" name="stockM" type="number" min="0" value="0"></div>
+            <div><span class="mono" style="font-size:.68rem;color:var(--muted-2)">L</span><input class="input" name="stockL" type="number" min="0" value="0"></div>
+            <div><span class="mono" style="font-size:.68rem;color:var(--muted-2)">XL</span><input class="input" name="stockXL" type="number" min="0" value="0"></div>
+          </div>
         </div>
+        <div class="field"><label>Drop Name</label><input class="input" name="dropName" value="Drop One"></div>
         <div class="field"><label>Description</label><textarea class="textarea" name="description"></textarea></div>
         <div class="form-2col">
           <div class="field"><label>Material</label><input class="input" name="material"></div>
@@ -65,8 +71,20 @@
           <div class="field"><label>Model Info</label><input class="input" name="modelInfo" placeholder="Model is 1.80m / wears M"></div>
         </div>
         <div class="field"><label>Care Instructions</label><input class="input" name="care"></div>
-        <div class="field"><label>Image URL <span class="text-muted">(e.g. /assets/media/redline-tee.jpg)</span></label><input class="input" name="image"></div>
-        <div class="field"><label>Gallery URLs <span class="text-muted">(comma separated, optional)</span></label><input class="input" name="gallery"></div>
+
+        <label>Product Images <span class="text-muted">(paste an image URL — see note below to upload later)</span></label>
+        <div class="form-2col mt-8">
+          <div class="field">
+            <label>Image 1 <span class="text-muted">(main)</span></label>
+            <input class="input" name="image1" placeholder="/assets/media/redline-tee.jpg" data-img-input="1">
+            <img data-img-preview="1" alt="Image 1 preview" style="width:100%;aspect-ratio:4/5;object-fit:cover;border:1px solid var(--line);border-radius:var(--radius);margin-top:8px;background:var(--charcoal);display:none">
+          </div>
+          <div class="field">
+            <label>Image 2 <span class="text-muted">(hover / second)</span></label>
+            <input class="input" name="image2" placeholder="/assets/media/hero.jpg" data-img-input="2">
+            <img data-img-preview="2" alt="Image 2 preview" style="width:100%;aspect-ratio:4/5;object-fit:cover;border:1px solid var(--line);border-radius:var(--radius);margin-top:8px;background:var(--charcoal);display:none">
+          </div>
+        </div>
 
         <div class="flex gap-16 wrap">
           <label class="checkline"><input type="checkbox" name="featured"> Featured</label>
@@ -82,9 +100,9 @@
     </div>
   </div>
 
-  <script src="/assets/js/config.js?v=4"></script>
-  <script src="/assets/js/api.js?v=4"></script>
-  <script src="/assets/js/admin.js?v=4"></script>
+  <script src="/assets/js/config.js?v=5"></script>
+  <script src="/assets/js/api.js?v=5"></script>
+  <script src="/assets/js/admin.js?v=5"></script>
   <script>
     ADMIN.guard("products.html", async () => {
       const rowsEl = document.querySelector("[data-rows]");
@@ -108,7 +126,7 @@
               <td><b>${ADMIN.esc(p.name)}</b><br><span class="mono" style="color:var(--muted-2);font-size:.7rem">${ADMIN.esc(p.slug)}</span></td>
               <td class="mono">${ADMIN.esc(p.category)}</td>
               <td class="mono">${p.onSale ? `<span style="color:var(--muted-2);text-decoration:line-through">${p.price}</span> <span style="color:var(--red)">${p.salePrice}</span>` : p.price} JD</td>
-              <td class="mono">${p.stock}</td>
+              <td class="mono" title="S ${p.sizeStock.S} · M ${p.sizeStock.M} · L ${p.sizeStock.L} · XL ${p.sizeStock.XL}">${p.stock}<br><span style="font-size:.6rem;color:var(--muted-2)">${p.sizeStock.S}/${p.sizeStock.M}/${p.sizeStock.L}/${p.sizeStock.XL}</span></td>
               <td><span class="pill">${statusLabel(p.status)}</span></td>
               <td class="mono" style="font-size:.7rem">${p.featured ? "★ FEAT " : ""}${p.hidden ? "· HIDDEN" : ""}</td>
               <td><div class="actions-inline">
@@ -126,18 +144,36 @@
         document.querySelector("[data-modal-title]").textContent = product ? "Edit Product" : "Add Product";
         if (product) {
           form.id.value = product.id;
-          ["name","slug","price","salePrice","category","status","stock","dropName","description","material","fit","gsm","modelInfo","care","image"].forEach(k => { if (form[k] != null) form[k].value = product[k] ?? ""; });
+          ["name","slug","price","salePrice","category","status","dropName","description","material","fit","gsm","modelInfo","care"].forEach(k => { if (form[k] != null) form[k].value = product[k] ?? ""; });
           form.sizes.value = (product.sizes || []).join(", ");
           form.colors.value = (product.colors || []).join(", ");
-          form.gallery.value = (product.gallery || []).join(", ");
+          form.image1.value = product.image || "";
+          form.image2.value = product.image2 || "";
+          const ss = product.sizeStock || {};
+          form.stockS.value = ss.S ?? 0; form.stockM.value = ss.M ?? 0;
+          form.stockL.value = ss.L ?? 0; form.stockXL.value = ss.XL ?? 0;
           form.featured.checked = !!product.featured;
           form.hidden.checked = !!product.hidden;
         } else {
           form.id.value = "";
+          ["stockS","stockM","stockL","stockXL"].forEach(k => form[k].value = 0);
         }
+        refreshPreviews();
         modal.setAttribute("data-open", "1");
       }
       const closeModal = () => modal.setAttribute("data-open", "0");
+
+      // Live image previews
+      function refreshPreviews() {
+        [1, 2].forEach((n) => {
+          const input = form.querySelector(`[data-img-input="${n}"]`);
+          const img = form.querySelector(`[data-img-preview="${n}"]`);
+          const v = input.value.trim();
+          if (v) { img.onerror = () => { img.style.display = "none"; }; img.src = v; img.style.display = "block"; }
+          else { img.style.display = "none"; img.removeAttribute("src"); }
+        });
+      }
+      form.querySelectorAll("[data-img-input]").forEach((inp) => inp.addEventListener("input", refreshPreviews));
 
       document.querySelector("[data-new]").addEventListener("click", () => openModal(null));
       document.querySelector("[data-cancel]").addEventListener("click", closeModal);
@@ -163,12 +199,14 @@
           name: form.name.value.trim(), slug: form.slug.value.trim(),
           price: form.price.value, salePrice: form.salePrice.value,
           category: form.category.value, status: form.status.value,
-          stock: form.stock.value, dropName: form.dropName.value,
+          dropName: form.dropName.value,
           sizes: toArr(form.sizes.value), colors: toArr(form.colors.value),
-          gallery: toArr(form.gallery.value),
           description: form.description.value, material: form.material.value,
           fit: form.fit.value, gsm: form.gsm.value, modelInfo: form.modelInfo.value,
-          care: form.care.value, image: form.image.value.trim(),
+          care: form.care.value,
+          image1: form.image1.value.trim(), image2: form.image2.value.trim(),
+          stockS: form.stockS.value, stockM: form.stockM.value,
+          stockL: form.stockL.value, stockXL: form.stockXL.value,
           featured: form.featured.checked, hidden: form.hidden.checked,
         };
         try {

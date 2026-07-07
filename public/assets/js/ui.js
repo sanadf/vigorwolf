@@ -212,25 +212,33 @@
 
   /* --------------------------------------------------------------- product card */
   function productCard(p) {
-    const buyable = p.status !== "sold_out" && p.status !== "coming_soon";
-    const soldVeil = p.status === "sold_out" ? '<div class="card__soldout-veil">Sold Out</div>' : "";
+    // Sold out when inventory is empty (unless it's a coming-soon teaser).
+    const soldOut = p.status === "sold_out" || (p.inStock === false && p.status !== "coming_soon");
+    const buyable = p.status !== "coming_soon" && !soldOut;
+    const soldVeil = soldOut ? '<div class="card__soldout-veil">Sold Out</div>' : "";
     const cta = buyable
       ? `<button class="btn btn--sm btn--block" data-quickadd="${p.slug}">Add to Cart</button>`
       : `<a class="btn btn--sm btn--ghost btn--block" href="/product.html?slug=${p.slug}">View</a>`;
+    const img1 = p.image || "/assets/media/logo-white.png";
+    const img2 = p.image2 || "";
+    const hover = img2
+      ? `<img class="card__img2" src="${img2}" alt="" loading="lazy">`
+      : "";
     return `
-      <article class="card" data-reveal>
+      <article class="card${img2 ? " has-hover" : ""}" data-reveal>
         <div class="card__media">
           <div class="card__badges">${badgeFor(p)}</div>
           ${soldVeil}
           <a href="/product.html?slug=${p.slug}" aria-label="${p.name}">
-            <img src="${p.image || "/assets/media/logo-white.png"}" alt="${p.name}" loading="lazy">
+            <img class="card__img1" src="${img1}" alt="${p.name}" loading="lazy">
+            ${hover}
           </a>
           <div class="card__quickadd">${cta}</div>
         </div>
         <div class="card__body">
           <span class="card__cat">${p.category}${p.gsm ? " · " + p.gsm : ""}</span>
           <h3 class="card__name"><a href="/product.html?slug=${p.slug}">${p.name}</a></h3>
-          <span class="card__meta">${(p.colors || []).join(", ")} · ${(p.sizes || []).join(" ")}</span>
+          <span class="card__meta">${(p.colors || []).join(", ")} · ${(p.availableSizes && p.availableSizes.length ? p.availableSizes : p.sizes || []).join(" ")}</span>
           <div class="card__foot">
             ${priceHTML(p)}
             <a class="link-underline" href="/product.html?slug=${p.slug}">Details</a>
@@ -248,12 +256,15 @@
     if (!btn) return;
     const p = productIndex[btn.getAttribute("data-quickadd")];
     if (!p) return;
+    // Pick the first IN-STOCK size so the customer never quick-adds an OOS size.
+    const size = (p.availableSizes && p.availableSizes[0]) || (p.sizes && p.sizes[0]) || "OS";
+    if (p.inStock === false) { toast("Sold out"); return; }
     Cart.add({
       productId: p.id, slug: p.slug, name: p.name,
       price: p.onSale ? p.salePrice : p.price, image: p.image,
-      size: (p.sizes && p.sizes[0]) || "OS", color: (p.colors && p.colors[0]) || "Black", qty: 1,
+      size, color: (p.colors && p.colors[0]) || "Black", qty: 1,
     });
-    toast(`Added — ${p.name}`, "ok");
+    toast(`Added — ${p.name} (${size})`, "ok");
   });
 
   /* --------------------------------------------------------------- signup forms */

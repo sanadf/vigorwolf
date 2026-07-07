@@ -10,6 +10,7 @@ import {
 } from "../_lib/loyalty.js";
 import { resolveShipping } from "../_lib/shipping.js";
 import { normalizePhone, isValidPhone } from "../_lib/phone.js";
+import { SIZE_COLUMN } from "../products/index.js";
 
 function orderNumber() {
   const d = new Date();
@@ -41,18 +42,38 @@ export async function onRequestPost(context) {
   const governorate = ship.value; // canonical governorate stored on the order
 
   try {
-    // 1) Resolve items -> trusted subtotal
+    // 1) Resolve items -> trusted subtotal (+ pull per-size stock for validation)
     const resolved = [];
     for (const it of items) {
       const p = await env.DB.prepare(
-        "SELECT id, name, price, sale_price, image_url FROM products WHERE id = ? AND hidden = 0"
+        "SELECT id, name, price, sale_price, image_url, image_1, stock, stock_s, stock_m, stock_l, stock_xl FROM products WHERE id = ? AND hidden = 0"
       ).bind(it.productId).first();
       if (!p) continue;
       const unit = p.sale_price != null && p.sale_price > 0 && p.sale_price < p.price ? p.sale_price : p.price;
       const qty = Math.max(1, parseInt(it.qty, 10) || 1);
-      resolved.push({ productId: p.id, name: p.name, price: unit, size: it.size || "", color: it.color || "", qty, image: p.image_url });
+      resolved.push({
+        productId: p.id, name: p.name, price: unit, size: it.size || "",
+        color: it.color || "", qty, image: p.image_1 || p.image_url, row: p,
+      });
     }
     if (resolved.length === 0) return fail("No valid items in cart.");
+
+    // 1b) Stock validation (server-side, per product + size). Never oversell.
+    const colFor = (size) => SIZE_COLUMN[String(size || "").toUpperCase()] || null; // null => legacy total
+    const needed = new Map(); // key: productId|column -> total qty
+    for (const i of resolved) {
+      const key = i.productId + "|" + (colFor(i.size) || "stock");
+      needed.set(key, (needed.get(key) || 0) + i.qty);
+    }
+    for (const i of resolved) {
+      const col = colFor(i.size);
+      const available = col ? (i.row[col] ?? 0) : (i.row.stock ?? 0);
+      const key = i.productId + "|" + (col || "stock");
+      if (needed.get(key) > available) {
+        return fail(`Sorry — "${i.name}"${i.size ? ` in size ${i.size}` : ""} is out of stock. Please adjust your cart.`, 409);
+      }
+    }
+
     const subtotal = round2(resolved.reduce((s, i) => s + i.price * i.qty, 0));
 
     // 2) Coupon discount (applied first)
@@ -101,6 +122,23 @@ export async function onRequestPost(context) {
         `INSERT INTO order_items (order_id, product_id, name, price, size, color, qty, image_url)
          VALUES (?,?,?,?,?,?,?,?)`
       ).bind(orderId, i.productId, i.name, i.price, i.size, i.color, i.qty, i.image).run();
+    }
+
+    // Reduce stock for the exact product + size. The `>= ?` guard makes it
+    // impossible to go negative even under concurrent orders. Column names come
+    // from SIZE_COLUMN (fixed values), never from user input.
+    for (const i of resolved) {
+      const col = colFor(i.size);
+      const r = col
+        ? await env.DB.prepare(
+            `UPDATE products SET ${col} = ${col} - ?, stock = stock - ? WHERE id = ? AND ${col} >= ?`
+          ).bind(i.qty, i.qty, i.productId, i.qty).run()
+        : await env.DB.prepare(
+            "UPDATE products SET stock = stock - ? WHERE id = ? AND stock >= ?"
+          ).bind(i.qty, i.productId, i.qty).run();
+      if (!r.meta.changes) {
+        console.error(`[order ${number}] stock decrement had no effect (product ${i.productId}, size ${i.size}) — possible race.`);
+      }
     }
 
     // Coupon usage
