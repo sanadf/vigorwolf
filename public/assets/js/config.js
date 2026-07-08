@@ -41,8 +41,8 @@ window.VW_CONFIG = {
 
   // Social placeholders — replace with your real links.
   social: {
-    instagram: "https://instagram.com/vigorwolf",
-    tiktok: "https://tiktok.com/@vigorwolf",
+    instagram: "https://www.instagram.com/vigor.wolf",
+    tiktok: "https://www.tiktok.com/@vigorwolf1",
     email: "vigorwolf1@gmail.com",
   },
 
