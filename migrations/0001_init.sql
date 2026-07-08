@@ -132,6 +132,18 @@ CREATE TABLE IF NOT EXISTS contact_messages (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- ---------- PASSWORD RESET TOKENS -------------------------------------------
+-- Only the SHA-256 hash of each reset token is stored (never the raw token).
+-- Tokens expire (see /api/auth/forgot) and are deleted after a successful reset.
+CREATE TABLE IF NOT EXISTS password_resets (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id    INTEGER NOT NULL,
+  token_hash TEXT NOT NULL,
+  expires_at TEXT NOT NULL,            -- ISO timestamp
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token_hash);
+
 -- ---------- LOYALTY TRANSACTIONS --------------------------------------------
 CREATE TABLE IF NOT EXISTS loyalty_transactions (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
