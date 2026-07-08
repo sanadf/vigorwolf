@@ -13,10 +13,13 @@
     "db:upgrade:remote": "wrangler d1 execute vigorwolf-db --remote --file=./migrations/0003_loyalty_coupons.sql",
     "admin:reset:remote": "node scripts/reset-admin.mjs --remote",
     "admin:reset:local": "node scripts/reset-admin.mjs --local",
+    "test:auth": "node scripts/test-auth.mjs",
     "db:email-status:remote": "wrangler d1 execute vigorwolf-db --remote --file=./migrations/0005_email_status.sql",
     "db:email-status:local": "wrangler d1 execute vigorwolf-db --local --file=./migrations/0005_email_status.sql",
     "db:product-inventory:remote": "wrangler d1 execute vigorwolf-db --remote --file=./migrations/0006_product_inventory.sql",
     "db:product-inventory:local": "wrangler d1 execute vigorwolf-db --local --file=./migrations/0006_product_inventory.sql",
+    "db:accounts:remote": "wrangler d1 execute vigorwolf-db --remote --file=./migrations/0007_user_accounts.sql",
+    "db:accounts:local": "wrangler d1 execute vigorwolf-db --local --file=./migrations/0007_user_accounts.sql",
     "deploy": "wrangler pages deploy public"
   },
   "devDependencies": {

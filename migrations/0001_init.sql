@@ -12,13 +12,18 @@ CREATE TABLE IF NOT EXISTS admin_users (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
--- ---------- CUSTOMER USERS (loyalty) ----------------------------------------
--- Storefront login is a browser mock, but loyalty points persist server-side
--- keyed by email, so points survive across browsers/devices.
+-- ---------- CUSTOMER USERS (real accounts + loyalty) ------------------------
+-- One shared, persistent account per email. Password is PBKDF2-hashed (never
+-- plaintext). Email is stored normalized (trim + lowercase) and is UNIQUE, so
+-- the same account works across every device. Loyalty points live here too.
 CREATE TABLE IF NOT EXISTS users (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,
-  email          TEXT NOT NULL UNIQUE,
+  email          TEXT NOT NULL UNIQUE,          -- normalized (lowercase, trimmed)
   name           TEXT DEFAULT '',
+  password       TEXT DEFAULT '',               -- pbkdf2$iter$salt$hash ('' = order-only, no login yet)
+  phone          TEXT DEFAULT '',
+  city           TEXT DEFAULT '',
+  address        TEXT DEFAULT '',
   points_balance INTEGER NOT NULL DEFAULT 0,
   created_at     TEXT NOT NULL DEFAULT (datetime('now'))
 );

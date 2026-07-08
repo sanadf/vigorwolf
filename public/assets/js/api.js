@@ -28,6 +28,15 @@
     userPoints: (email) => request("/api/user/points?email=" + encodeURIComponent(email)),
     validateCoupon: (code, subtotal) => request("/api/coupons/validate", { method: "POST", body: JSON.stringify({ code, subtotal }) }),
 
+    // customer accounts (real, D1-backed)
+    auth: {
+      register: (data) => request("/api/auth/register", { method: "POST", body: JSON.stringify(data) }),
+      login: (email, password) => request("/api/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+      logout: () => request("/api/auth/logout", { method: "POST" }),
+      me: () => request("/api/auth/me"),
+      updateProfile: (patch) => request("/api/auth/profile", { method: "PATCH", body: JSON.stringify(patch) }),
+    },
+
     // admin
     admin: {
       login: (email, password) => request("/api/admin/login", { method: "POST", body: JSON.stringify({ email, password }) }),
@@ -53,6 +62,7 @@
       loyaltyTransactions: () => request("/api/admin/loyalty-transactions"),
       users: () => request("/api/admin/users"),
       adjustPoints: (id, points, note) => request(`/api/admin/users/${id}/points`, { method: "PATCH", body: JSON.stringify({ points, note }) }),
+      dbInfo: () => request("/api/admin/db-info"),
     },
   };
 })();

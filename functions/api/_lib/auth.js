@@ -3,8 +3,10 @@
 import { parseCookies } from "./http.js";
 
 const enc = new TextEncoder();
-const COOKIE = "vw_admin";
-const SESSION_TTL = 60 * 60 * 8; // 8 hours
+const COOKIE = "vw_admin";          // admin session cookie
+const COOKIE_USER = "vw_user";      // customer session cookie
+const SESSION_TTL = 60 * 60 * 8;         // admin: 8 hours
+export const TTL_USER = 60 * 60 * 24 * 30; // customer: 30 days
 
 const toHex = (buf) =>
   [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
@@ -68,15 +70,16 @@ async function hmac(secret, data) {
   return crypto.subtle.sign("HMAC", key, enc.encode(data));
 }
 
-export async function createSession(env, payload) {
-  const body = { ...payload, exp: Math.floor(Date.now() / 1000) + SESSION_TTL };
+export async function createSession(env, payload, ttl = SESSION_TTL) {
+  const body = { ...payload, exp: Math.floor(Date.now() / 1000) + ttl };
   const data = b64url(enc.encode(JSON.stringify(body)));
   const sig = b64url(await hmac(sessionSecret(env), data));
   return `${data}.${sig}`;
 }
 
-export async function readSession(env, request) {
-  const token = parseCookies(request)[COOKIE];
+// Verify a signed cookie by name. Returns the payload or null.
+async function readSessionFrom(env, request, cookieName) {
+  const token = parseCookies(request)[cookieName];
   if (!token || !token.includes(".")) return null;
   const [data, sig] = token.split(".");
   const expected = b64url(await hmac(sessionSecret(env), data));
@@ -90,14 +93,21 @@ export async function readSession(env, request) {
   }
 }
 
-export function sessionCookie(token) {
-  return `${COOKIE}=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_TTL}`;
-}
-export function clearCookie() {
-  return `${COOKIE}=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0`;
+const cookie = (name, token, ttl) =>
+  `${name}=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${ttl}`;
+
+// ---- Admin session (backward-compatible signatures) ----
+export const readSession = (env, request) => readSessionFrom(env, request, COOKIE);
+export const sessionCookie = (token) => cookie(COOKIE, token, SESSION_TTL);
+export const clearCookie = () => cookie(COOKIE, "", 0);
+export async function requireAdmin(context) {
+  return readSessionFrom(context.env, context.request, COOKIE);
 }
 
-// Guard for admin routes. Returns the session or null.
-export async function requireAdmin(context) {
-  return readSession(context.env, context.request);
+// ---- Customer session ----
+export const readUserSession = (env, request) => readSessionFrom(env, request, COOKIE_USER);
+export const userSessionCookie = (token) => cookie(COOKIE_USER, token, TTL_USER);
+export const clearUserCookie = () => cookie(COOKIE_USER, "", 0);
+export async function requireUser(context) {
+  return readSessionFrom(context.env, context.request, COOKIE_USER);
 }

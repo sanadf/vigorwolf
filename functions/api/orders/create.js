@@ -11,6 +11,7 @@ import {
 import { resolveShipping } from "../_lib/shipping.js";
 import { normalizePhone, isValidPhone } from "../_lib/phone.js";
 import { SIZE_COLUMN } from "../products/index.js";
+import { requireUser } from "../_lib/auth.js";
 
 function orderNumber() {
   const d = new Date();
@@ -23,7 +24,10 @@ export async function onRequestPost(context) {
   const body = await readJson(context.request);
   const c = body.customer || {};
   const items = Array.isArray(body.items) ? body.items : [];
-  const userEmail = String(body.userEmail || "").toLowerCase();
+  // Loyalty is tied to the AUTHENTICATED customer (session cookie), never a
+  // client-supplied email — so points can't be credited to someone else.
+  const session = await requireUser(context);
+  const userEmail = session?.email ? String(session.email).toLowerCase() : "";
   const loggedIn = isEmail(userEmail);
 
   // --- validation ---

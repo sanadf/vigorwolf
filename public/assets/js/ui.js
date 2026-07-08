@@ -313,8 +313,14 @@
   window.VW.applyShopify = applyShopify;
 
   /* --------------------------------------------------------------- boot */
+  // Re-render the header whenever auth state changes (login/logout/reconcile).
+  document.addEventListener("vw:auth", () => { renderHeader(); applyShopify(); });
+
   function boot() {
     renderHeader(); renderFooter(); initReveal(); initClock(); bindSignupForms(); applyShopify();
+    // Validate the cached session against the server (source of truth). If the
+    // cookie is gone/expired, this clears the stale cache and updates the header.
+    if (window.VW && window.VW.User) window.VW.User.me().catch(() => {});
   }
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
   else boot();

@@ -194,6 +194,26 @@ confirm delivery. The button reports the provider result and tells you what's mi
 
 ---
 
+## Customer accounts & authentication
+
+Customer accounts are **real, server-side records in Cloudflare D1** (table `users`) — not
+browser storage. Passwords are **PBKDF2-hashed** (never plaintext), email is stored
+**normalized (trim + lowercase)** and is **UNIQUE**, and the session is a signed **HttpOnly
+cookie**. This means **one account works on every device**. API: `POST /api/auth/register`,
+`POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, `PATCH /api/auth/profile`.
+
+- **Confirm which database you're on:** sign into `/admin` → the Dashboard shows an
+  **Environment** line (local vs production, hostname, D1 bound, account/product/order counts)
+  via `GET /api/admin/db-info`.
+- **Tests:** with the dev server running, `npm run test:auth` checks signup, duplicate-email
+  rejection, login, **login from a fresh device**, wrong-password, and case-insensitive email.
+- Cart & wishlist stay in `localStorage` by design (standard guest-cart behavior); only
+  accounts/orders/loyalty are server-side.
+
+> **One-time production migration** (existing DB predates account columns):
+> `npm run db:accounts:remote` — adds `password/phone/city/address` to `users` (additive, no
+> data loss; existing loyalty rows are "claimed" when the customer registers).
+
 ## Where to change things
 
 | # | What | Where |

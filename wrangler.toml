@@ -27,6 +27,9 @@ database_id = "9deb43a7-fb8e-4a4a-ab40-4771aa62f66a"
 # should be added in the Cloudflare dashboard: Pages > Settings > Variables.
 [vars]
 SITE_NAME = "VIGORWOLF"
+# Shown in Admin → Dashboard "Environment" line. Local dev auto-detects via
+# hostname; this labels the deployed environment.
+ENVIRONMENT = "production"
 # Where order/contact/signup notifications are emailed:
 NOTIFY_EMAIL = "vigorwolf1@gmail.com"
 # EMAIL_PROVIDER can be "resend", "web3forms", or "" (disabled -> saved to D1 only)

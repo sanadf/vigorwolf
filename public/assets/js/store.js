@@ -47,39 +47,49 @@
     },
   };
 
-  /* --------------------------------------------------------------- user (mock) */
+  /* --------------------------------------------------------------- user (real, D1-backed)
+     Accounts live in Cloudflare D1 and the session is an HttpOnly cookie set by
+     the server — so one account works across every device/browser. The tiny
+     `vw_session` cache below holds ONLY {name,email} for instant header rendering;
+     it is never used for auth decisions (the server validates the cookie). */
+  const authChanged = () => document.dispatchEvent(new CustomEvent("vw:auth"));
   const User = {
+    // Cached identity for instant UI (may be stale until me() reconciles).
     current: () => read(KEYS.session, null),
     isLoggedIn: () => !!read(KEYS.session, null),
-    register(data) {
-      const users = read(KEYS.user, []);
-      if (users.some((u) => u.email === data.email.toLowerCase()))
-        throw new Error("An account with this email already exists.");
-      const user = {
-        name: data.name, email: data.email.toLowerCase(), password: btoa(data.password),
-        phone: data.phone || "", city: data.city || "", address: data.address || "",
-      };
-      users.push(user); write(KEYS.user, users);
-      write(KEYS.session, { name: user.name, email: user.email });
-      return user;
+
+    async register(data) {
+      const r = await window.API.auth.register(data);
+      write(KEYS.session, r.user); authChanged();
+      return r.user;
     },
-    login(email, password) {
-      const users = read(KEYS.user, []);
-      const u = users.find((x) => x.email === email.toLowerCase() && x.password === btoa(password));
-      if (!u) throw new Error("Invalid email or password.");
-      write(KEYS.session, { name: u.name, email: u.email });
-      return u;
+    async login(email, password) {
+      const r = await window.API.auth.login(String(email).trim(), password);
+      write(KEYS.session, r.user); authChanged();
+      return r.user;
     },
-    logout() { localStorage.removeItem(KEYS.session); },
-    profile() {
-      const s = User.current(); if (!s) return null;
-      return read(KEYS.user, []).find((u) => u.email === s.email) || null;
+    async logout() {
+      try { await window.API.auth.logout(); } catch {}
+      localStorage.removeItem(KEYS.session); authChanged();
     },
-    update(patch) {
-      const s = User.current(); if (!s) return;
-      const users = read(KEYS.user, []).map((u) => (u.email === s.email ? { ...u, ...patch } : u));
-      write(KEYS.user, users);
+    // Validate the session with the server; returns the full profile or null.
+    async me() {
+      try {
+        const r = await window.API.auth.me();
+        write(KEYS.session, { name: r.user.name, email: r.user.email });
+        return r.user;
+      } catch {
+        localStorage.removeItem(KEYS.session);
+        return null;
+      }
+    },
+    // Full profile (server round-trip).
+    async profile() { return this.me(); },
+    async update(patch) {
+      await window.API.auth.updateProfile(patch);
+      const s = read(KEYS.session, {}) || {};
       if (patch.name) write(KEYS.session, { ...s, name: patch.name });
+      authChanged();
     },
   };
 

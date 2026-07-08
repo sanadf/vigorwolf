@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dashboard — VIGORWOLF Admin</title>
   <meta name="robots" content="noindex">
-  <link rel="icon" type="image/png" href="/assets/media/favicon.png?v=6">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=6">
+  <link rel="icon" type="image/png" href="/assets/media/favicon.png?v=7">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=7">
 </head>
 <body>
   <div class="admin-shell">
@@ -24,6 +24,10 @@
       </div>
 
       <p class="signup-msg mb-16" data-email-msg></p>
+      <div class="panel mb-24" data-dbinfo style="border-color:var(--line-2)">
+        <span class="eyebrow eyebrow--plain">Environment</span>
+        <p class="mono mt-8" style="font-size:.8rem;color:var(--muted)" data-dbinfo-text>Checking database…</p>
+      </div>
       <div class="stat-grid" data-stats><p class="text-muted">Loading…</p></div>
 
       <h2 class="display mb-16" style="font-size:1.4rem">Latest Orders</h2>
@@ -36,12 +40,26 @@
     </main>
   </div>
 
-  <script src="/assets/js/config.js?v=6"></script>
-  <script src="/assets/js/api.js?v=6"></script>
-  <script src="/assets/js/admin.js?v=6"></script>
+  <script src="/assets/js/config.js?v=7"></script>
+  <script src="/assets/js/api.js?v=7"></script>
+  <script src="/assets/js/admin.js?v=7"></script>
   <script>
     ADMIN.guard("dashboard.html", async (me) => {
       document.querySelector("[data-admin-email]").textContent = me.email;
+
+      // Which database/environment is this deployment actually using?
+      (async () => {
+        try {
+          const d = await API.admin.dbInfo();
+          document.querySelector("[data-dbinfo-text]").innerHTML =
+            `<b style="color:var(--text)">${d.environment}</b> · host: ${d.hostname} · D1 bound: ${d.database.bound ? "yes" : "NO"} · ` +
+            `accounts: ${d.counts.registeredAccounts}/${d.counts.users} · products: ${d.counts.products} · orders: ${d.counts.orders} · email: ${d.emailProvider}`;
+          const el = document.querySelector("[data-dbinfo]");
+          el.style.borderColor = d.isLocal ? "var(--amber)" : "var(--line-2)";
+        } catch (e) {
+          document.querySelector("[data-dbinfo-text]").textContent = "Could not read DB info: " + e.message;
+        }
+      })();
 
       // Test email button
       const emailMsg = document.querySelector("[data-email-msg]");

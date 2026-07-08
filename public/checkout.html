@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Checkout — VIGORWOLF</title>
-  <link rel="icon" type="image/png" href="/assets/media/favicon.png?v=6">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=6">
+  <link rel="icon" type="image/png" href="/assets/media/favicon.png?v=7">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=7">
 </head>
 <body>
   <header id="site-header"></header>
@@ -94,10 +94,10 @@
   </main>
   <footer id="site-footer"></footer>
 
-  <script src="/assets/js/config.js?v=6"></script>
-  <script src="/assets/js/api.js?v=6"></script>
-  <script src="/assets/js/store.js?v=6"></script>
-  <script src="/assets/js/ui.js?v=6"></script>
+  <script src="/assets/js/config.js?v=7"></script>
+  <script src="/assets/js/api.js?v=7"></script>
+  <script src="/assets/js/store.js?v=7"></script>
+  <script src="/assets/js/ui.js?v=7"></script>
   <script>
     (async function () {
       const form = document.querySelector("[data-checkout]");
@@ -113,7 +113,7 @@
       const money = VW.money;
       const round2 = (n) => Math.round((n + Number.EPSILON) * 100) / 100;
       const subtotal = round2(VW.Cart.subtotal());
-      const user = VW.User.current();
+      const me = await VW.User.me(); // validated session (or null for guest)
 
       const state = { couponCode: "", couponDiscount: 0, redeemPoints: 0, pointsDiscount: 0, balance: 0 };
       const afterCoupon = () => round2(subtotal - state.couponDiscount);
@@ -153,24 +153,18 @@
       renderSummary();
       form.city.addEventListener("change", renderSummary);
 
-      const profile = VW.User.profile();
-      if (profile) {
-        form.name.value = profile.name || ""; form.email.value = profile.email || "";
-        form.phone.value = profile.phone || "";
-        // Only pre-select the governorate if it matches an approved value.
-        if (govs.some(g => g.value === profile.city)) form.city.value = profile.city;
-        form.address.value = profile.address || "";
+      if (me) {
+        // Prefill from the signed-in account.
+        form.name.value = me.name || ""; form.email.value = me.email || "";
+        form.phone.value = me.phone || "";
+        if (govs.some(g => g.value === me.city)) form.city.value = me.city;
+        form.address.value = me.address || "";
         renderSummary();
-      }
-
-      if (user) {
-        try {
-          const p = await API.userPoints(user.email);
-          state.balance = p.balance;
-          document.querySelector("[data-points-balance]").textContent = p.balance;
-          document.querySelector("[data-points-jd]").textContent = money(p.jdValue);
-          document.querySelector("[data-loyalty]").hidden = false;
-        } catch (e) { document.querySelector("[data-guest-note]").hidden = false; }
+        // Loyalty balance comes straight from the account.
+        state.balance = me.points || 0;
+        document.querySelector("[data-points-balance]").textContent = state.balance;
+        document.querySelector("[data-points-jd]").textContent = money(state.balance / 100);
+        document.querySelector("[data-loyalty]").hidden = false;
       } else {
         document.querySelector("[data-guest-note]").hidden = false;
       }
@@ -239,7 +233,6 @@
               address: fullAddress, notes: form.notes.value.trim(),
             },
             paymentMethod: "Cash on Delivery",
-            userEmail: user?.email || "",
             couponCode: state.couponCode,
             redeemPoints: state.redeemPoints,
             items: items.map(i => ({ productId: i.productId, size: i.size, color: i.color, qty: i.qty })),

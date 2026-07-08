@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Profile — VIGORWOLF</title>
-  <link rel="icon" type="image/png" href="/assets/media/favicon.png?v=6">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=6">
+  <link rel="icon" type="image/png" href="/assets/media/favicon.png?v=7">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=7">
 </head>
 <body>
   <header id="site-header"></header>
@@ -52,34 +52,43 @@
   </main>
   <footer id="site-footer"></footer>
 
-  <script src="/assets/js/config.js?v=6"></script>
-  <script src="/assets/js/api.js?v=6"></script>
-  <script src="/assets/js/store.js?v=6"></script>
-  <script src="/assets/js/ui.js?v=6"></script>
+  <script src="/assets/js/config.js?v=7"></script>
+  <script src="/assets/js/api.js?v=7"></script>
+  <script src="/assets/js/store.js?v=7"></script>
+  <script src="/assets/js/ui.js?v=7"></script>
   <script>
-    // Protect page
-    if (!VW.User.isLoggedIn()) location.href = "/login.html?next=/profile.html";
-    const p = VW.User.profile() || {};
     const form = document.querySelector("[data-profile]");
-    document.querySelector("[data-hi]").textContent = (p.name || "Profile").split(" ")[0];
-    ["name","email","phone","city","address"].forEach(k => { if (form[k]) form[k].value = p[k] || ""; });
-
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      VW.User.update({ name: form.name.value.trim(), phone: form.phone.value.trim(), city: form.city.value.trim(), address: form.address.value.trim() });
-      VW.toast("Profile saved", "ok");
-      document.querySelector("[data-hi]").textContent = (form.name.value || "Profile").split(" ")[0];
-    });
-    document.querySelector("[data-logout]").addEventListener("click", () => { VW.User.logout(); location.href = "/"; });
-
-    // Loyalty points (server-side, keyed by email)
     (async () => {
-      try {
-        const pts = await API.userPoints(p.email);
-        document.querySelector("[data-points]").textContent = pts.balance;
-        document.querySelector("[data-points-jd]").textContent = VW.money(pts.jdValue);
-      } catch (e) { /* no points yet */ }
+      // Protect page — validate the real session with the server.
+      const p = await VW.User.me();
+      if (!p) { location.href = "/login.html?next=/profile.html"; return; }
+
+      document.querySelector("[data-hi]").textContent = (p.name || "Profile").split(" ")[0];
+      ["name","email","phone","city","address"].forEach(k => { if (form[k]) form[k].value = p[k] || ""; });
+
+      // Loyalty points come straight from the account record.
+      document.querySelector("[data-points]").textContent = p.points || 0;
+      document.querySelector("[data-points-jd]").textContent = VW.money((p.points || 0) / 100);
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const btn = form.querySelector("button[type=submit]");
+        btn.setAttribute("data-loading", "1"); btn.disabled = true;
+        try {
+          await VW.User.update({
+            name: form.name.value.trim(), phone: form.phone.value.trim(),
+            city: form.city.value.trim(), address: form.address.value.trim(),
+          });
+          VW.toast("Profile saved", "ok");
+          document.querySelector("[data-hi]").textContent = (form.name.value || "Profile").split(" ")[0];
+        } catch (ex) { VW.toast(ex.message || "Could not save"); }
+        finally { btn.removeAttribute("data-loading"); btn.disabled = false; }
+      });
     })();
+
+    document.querySelector("[data-logout]").addEventListener("click", async () => {
+      await VW.User.logout(); location.href = "/";
+    });
   </script>
 </body>
 </html>
