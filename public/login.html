@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Login — VIGORWOLF</title>
-  <link rel="icon" type="image/png" href="/assets/media/favicon.png?v=7">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=7">
+  <link rel="icon" type="image/png" href="/assets/media/favicon.png?v=8">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=8">
 </head>
 <body>
   <header id="site-header"></header>
@@ -18,7 +18,11 @@
         </div>
         <form class="panel" data-login novalidate>
           <div class="field"><label>Email <span class="req">*</span></label><input class="input" name="email" type="email" required></div>
-          <div class="field"><label>Password <span class="req">*</span></label><input class="input" name="password" type="password" required></div>
+          <div class="field">
+            <label>Password <span class="req">*</span></label>
+            <input class="input" name="password" type="password" required>
+            <p style="text-align:right;margin-top:6px"><a class="link-underline" href="/forgot-password.html" style="font-size:.72rem">Forgot password?</a></p>
+          </div>
           <p class="field-error mb-16" data-error></p>
           <button class="btn btn--block btn--lg" type="submit">Login</button>
           <div class="divider"></div>
@@ -29,10 +33,10 @@
   </main>
   <footer id="site-footer"></footer>
 
-  <script src="/assets/js/config.js?v=7"></script>
-  <script src="/assets/js/api.js?v=7"></script>
-  <script src="/assets/js/store.js?v=7"></script>
-  <script src="/assets/js/ui.js?v=7"></script>
+  <script src="/assets/js/config.js?v=8"></script>
+  <script src="/assets/js/api.js?v=8"></script>
+  <script src="/assets/js/store.js?v=8"></script>
+  <script src="/assets/js/ui.js?v=8"></script>
   <script>
     if (VW.User.isLoggedIn()) location.href = "/profile.html";
     const form = document.querySelector("[data-login]");

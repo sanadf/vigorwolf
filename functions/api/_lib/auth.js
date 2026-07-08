@@ -50,6 +50,12 @@ async function pbkdf2(password, salt, iterations) {
   return bits;
 }
 
+// SHA-256 hex — used to store password-reset tokens hashed (never raw).
+export async function sha256Hex(str) {
+  const buf = await crypto.subtle.digest("SHA-256", enc.encode(String(str)));
+  return toHex(buf);
+}
+
 function timingSafeEqual(a, b) {
   if (a.length !== b.length) return false;
   let diff = 0;

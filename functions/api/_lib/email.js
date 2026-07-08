@@ -1,17 +1,22 @@
-// Optional email notifications. If no provider/key is configured this is a
-// no-op and the caller still persists everything to D1 (email never blocks an
-// order). Supports Resend and Web3Forms. Failures are logged, never thrown.
+// Email helpers. Optional/non-blocking: if no provider/key is configured this
+// is a no-op and the caller still succeeds. Supports Resend and Web3Forms.
 //
 // Configure via Cloudflare Pages env vars (Settings > Variables & Secrets):
 //   EMAIL_PROVIDER   "resend" | "web3forms"   (var)
-//   NOTIFY_EMAIL     vigorwolf1@gmail.com      (var, where orders are sent)
+//   NOTIFY_EMAIL     vigorwolf1@gmail.com      (var, where ORDER alerts go)
 //   RESEND_API_KEY   re_xxx                    (secret, if provider=resend)
-//   RESEND_FROM      "VIGORWOLF <orders@yourdomain>"  (var, verified sender)
+//   RESEND_FROM      "VIGORWOLF <no-reply@yourdomain>"  (var, VERIFIED sender)
 //   WEB3FORMS_KEY    xxxxxxxx                  (secret, if provider=web3forms)
+//
+// NOTE: Emails to CUSTOMERS (e.g. password reset) require Resend with a
+// verified domain in RESEND_FROM. The default onboarding@resend.dev only
+// delivers to your own Resend account address, so customer mail won't arrive
+// until you verify a domain.
 
-export async function sendNotification(env, { subject, text, replyTo }) {
+// Send to a specific recipient. Returns { sent, provider, ... }.
+export async function sendEmail(env, { to, subject, text, replyTo }) {
   const provider = (env.EMAIL_PROVIDER || "").toLowerCase();
-  const to = env.NOTIFY_EMAIL || "vigorwolf1@gmail.com";
+  const recipient = to || env.NOTIFY_EMAIL || "vigorwolf1@gmail.com";
 
   try {
     if (provider === "resend") {
@@ -24,7 +29,7 @@ export async function sendNotification(env, { subject, text, replyTo }) {
         headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           from: env.RESEND_FROM || "VIGORWOLF <onboarding@resend.dev>",
-          to: [to], subject, text, reply_to: replyTo || undefined,
+          to: [recipient], subject, text, reply_to: replyTo || undefined,
         }),
       });
       const body = await res.text();
@@ -37,12 +42,14 @@ export async function sendNotification(env, { subject, text, replyTo }) {
         console.error("[email] EMAIL_PROVIDER=web3forms but WEB3FORMS_KEY is missing");
         return { sent: false, provider: "web3forms", error: "missing WEB3FORMS_KEY" };
       }
+      // Web3Forms delivers to the address tied to the key (can't target arbitrary
+      // recipients) — fine for order alerts, not for customer emails.
       const res = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({
           access_key: env.WEB3FORMS_KEY, subject, from_name: "VIGORWOLF Website",
-          email: replyTo || to, message: text,
+          email: replyTo || recipient, message: text,
         }),
       });
       const body = await res.text();
@@ -54,7 +61,11 @@ export async function sendNotification(env, { subject, text, replyTo }) {
     return { sent: false, provider, error: String(err) };
   }
 
-  // No provider configured — order still saved; just no email.
-  console.warn("[email] EMAIL_PROVIDER not set — notification skipped (order was saved).");
+  console.warn("[email] EMAIL_PROVIDER not set — email skipped.");
   return { sent: false, provider: "none" };
+}
+
+// Brand-facing notification (orders / contact / signups) -> NOTIFY_EMAIL.
+export async function sendNotification(env, { subject, text, replyTo }) {
+  return sendEmail(env, { to: env.NOTIFY_EMAIL || "vigorwolf1@gmail.com", subject, text, replyTo });
 }

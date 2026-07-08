@@ -35,6 +35,8 @@
       logout: () => request("/api/auth/logout", { method: "POST" }),
       me: () => request("/api/auth/me"),
       updateProfile: (patch) => request("/api/auth/profile", { method: "PATCH", body: JSON.stringify(patch) }),
+      forgot: (email) => request("/api/auth/forgot", { method: "POST", body: JSON.stringify({ email }) }),
+      reset: (token, password) => request("/api/auth/reset", { method: "POST", body: JSON.stringify({ token, password }) }),
     },
 
     // admin
