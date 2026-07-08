@@ -201,5 +201,5 @@ INSERT OR IGNORE INTO drops
 VALUES
 ('Drop One', 'drop-one',
  'The first VIGORWOLF release. Limited units. Once it is gone, it is gone. The Pack moves first.',
- '11 July 2026', '2026-07-11T20:00:00', 'Coming Soon',
- 'Drop One: Coming Soon', '[1,2,3]', 1);
+ 'Out Now', '', 'Live',
+ 'Drop One — Out Now', '[1,2,3]', 1);

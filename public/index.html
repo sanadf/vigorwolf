@@ -17,7 +17,7 @@
       <div class="hero__bg"><img src="/assets/media/hero.jpg" alt="VIGORWOLF crew"></div>
       <span class="hero__ghost" aria-hidden="true">WOLF</span>
       <div class="container hero__inner">
-        <span class="eyebrow">Drop 01 // Coming Soon &nbsp;—&nbsp; <span class="clock" style="margin-left:6px"><span class="dot"></span><span data-clock>00:00:00</span></span></span>
+        <span class="eyebrow">Drop 01 // Out Now &nbsp;—&nbsp; <span class="clock" style="margin-left:6px"><span class="dot"></span> Live</span></span>
         <h1 class="display">Built for the<br><span class="gothic text-red">Relentless</span></h1>
         <p class="lede">VIGORWOLF is streetwear for discipline, strength, and confidence. Culture. Tribe. Lifestyle.</p>
         <div class="hero__cta">
@@ -25,8 +25,8 @@
           <a class="btn btn--lg btn--ghost" href="#join">Join the Pack</a>
         </div>
         <div class="hero__meta">
-          <span class="eyebrow eyebrow--plain"><strong data-drop-status>Coming Soon</strong>Drop status</span>
-          <span class="eyebrow eyebrow--plain"><strong>11.07.26</strong>Launch date</span>
+          <span class="eyebrow eyebrow--plain"><strong>Live</strong>Drop status</span>
+          <span class="eyebrow eyebrow--plain"><strong>Out Now</strong>Availability</span>
           <span class="eyebrow eyebrow--plain"><strong>Limited</strong>Units only</span>
         </div>
       </div>
@@ -47,13 +47,12 @@
       <div class="container">
         <div class="text-center" style="max-width:760px;margin-inline:auto" data-reveal>
           <span class="eyebrow eyebrow--plain" style="justify-content:center">Featured Drop</span>
-          <h2 class="display mt-16" data-drop-name>Drop One: Coming Soon</h2>
-          <p class="text-muted mt-16" data-drop-desc style="max-width:52ch;margin-inline:auto">The first VIGORWOLF release. Limited units. Once it is gone, it is gone. The Pack moves first.</p>
-          <div class="mt-24"><span class="tag tag--red" data-drop-pill>Coming Soon</span></div>
-          <div class="countdown mt-24" data-countdown style="justify-content:center"></div>
+          <h2 class="display mt-16">Drop One — Out Now</h2>
+          <p class="text-muted mt-16" style="max-width:52ch;margin-inline:auto">The first VIGORWOLF release. Limited units. Once it's gone, it's gone. The Pack moves first.</p>
+          <div class="mt-24"><span class="clock" style="justify-content:center;font-size:.82rem"><span class="dot"></span> Live now — shop the drop</span></div>
           <div class="hero__cta mt-40" style="justify-content:center">
-            <a class="btn" href="/drop.html">View the Drop</a>
-            <a class="btn btn--ghost" href="#join">Get Notified</a>
+            <a class="btn" href="/shop.html">Shop the Drop</a>
+            <a class="btn btn--ghost" href="/drop.html">View the Drop</a>
           </div>
         </div>
       </div>
@@ -134,31 +133,17 @@
   <script src="/assets/js/ui.js?v=5"></script>
   <script>
     (async function () {
-      // --- current drop -> countdown, status, copy ---
-      let dropDate = window.VW_CONFIG.fallbackDropDate;
-      try {
-        const { drop } = await API.currentDrop();
-        if (drop) {
-          dropDate = drop.countdownDate || dropDate;
-          document.querySelectorAll("[data-drop-status]").forEach(e => e.textContent = drop.status);
-          const nm = document.querySelector("[data-drop-name]"); if (nm) nm.textContent = drop.heroText || drop.name;
-          const ds = document.querySelector("[data-drop-desc]"); if (ds && drop.description) ds.textContent = drop.description;
-          const pill = document.querySelector("[data-drop-pill]"); if (pill) pill.textContent = drop.status;
-        }
-      } catch (e) { /* fall back to config date */ }
-      VW.startCountdown(document.querySelector("[data-countdown]"), dropDate);
-
-      // --- featured products ---
+      // Store is live — load featured products.
       const grid = document.querySelector("[data-featured-grid]");
       try {
         const { products } = await API.products();
         VW.setProductIndex(products);
         const featured = products.filter(p => p.featured).slice(0, 4);
         const list = featured.length ? featured : products.slice(0, 4);
-        grid.innerHTML = list.map(VW.productCard).join("") || "<p class='text-muted'>Products dropping soon.</p>";
+        grid.innerHTML = list.map(VW.productCard).join("") || "<p class='text-muted'>New pieces coming soon.</p>";
         VW.initReveal();
       } catch (e) {
-        grid.innerHTML = "<p class='text-muted'>Products dropping soon. Check back for Drop One.</p>";
+        grid.innerHTML = "<p class='text-muted'>Could not load products right now.</p>";
       }
     })();
   </script>
