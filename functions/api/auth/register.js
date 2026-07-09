@@ -17,24 +17,24 @@ export async function onRequestPost(context) {
   if (password.length < 6) return fail("Password must be at least 6 characters.");
 
   try {
-    const existing = await env.DB.prepare("SELECT id, password FROM users WHERE email = ?")
+    const existing = await env.DB.prepare("SELECT id, password_hash FROM users WHERE email = ?")
       .bind(email).first();
     const hash = await hashPassword(password);
     let userId;
 
     if (existing) {
-      if (existing.password && existing.password.length) {
+      if (existing.password_hash && existing.password_hash.length) {
         // A real (password-holding) account already exists.
         return fail("An account with this email already exists. Please log in.", 409);
       }
       // Order/loyalty-created row with no password yet — claim it.
       await env.DB.prepare(
-        "UPDATE users SET name = ?, password = ?, phone = ?, city = ?, address = ? WHERE id = ?"
+        "UPDATE users SET name = ?, password_hash = ?, phone = ?, city = ?, address = ? WHERE id = ?"
       ).bind(name, hash, b.phone || "", b.city || "", b.address || "", existing.id).run();
       userId = existing.id;
     } else {
       const res = await env.DB.prepare(
-        "INSERT INTO users (email, name, password, phone, city, address) VALUES (?,?,?,?,?,?)"
+        "INSERT INTO users (email, name, password_hash, phone, city, address) VALUES (?,?,?,?,?,?)"
       ).bind(email, name, hash, b.phone || "", b.city || "", b.address || "").run();
       userId = res.meta.last_row_id;
     }

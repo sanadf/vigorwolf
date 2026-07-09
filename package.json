@@ -15,6 +15,7 @@
     "admin:reset:local": "node scripts/reset-admin.mjs --local",
     "test:auth": "node scripts/test-auth.mjs",
     "test:reset": "node scripts/test-reset.mjs",
+    "test:password-migration": "node scripts/test-password-migration.mjs",
     "db:email-status:remote": "wrangler d1 execute vigorwolf-db --remote --file=./migrations/0005_email_status.sql",
     "db:email-status:local": "wrangler d1 execute vigorwolf-db --local --file=./migrations/0005_email_status.sql",
     "db:product-inventory:remote": "wrangler d1 execute vigorwolf-db --remote --file=./migrations/0006_product_inventory.sql",
@@ -23,6 +24,12 @@
     "db:accounts:local": "wrangler d1 execute vigorwolf-db --local --file=./migrations/0007_user_accounts.sql",
     "db:resets:remote": "wrangler d1 execute vigorwolf-db --remote --file=./migrations/0008_password_resets.sql",
     "db:resets:local": "wrangler d1 execute vigorwolf-db --local --file=./migrations/0008_password_resets.sql",
+    "db:fix-auth:remote": "wrangler d1 execute vigorwolf-db --remote --file=./migrations/0009_fix_user_password_hash.sql",
+    "db:fix-auth:local": "wrangler d1 execute vigorwolf-db --local --file=./migrations/0009_fix_user_password_hash.sql",
+    "user:reset:remote": "node scripts/user-reset.mjs --remote",
+    "user:reset:local": "node scripts/user-reset.mjs --local",
+    "user:debug:remote": "node scripts/user-debug.mjs --remote",
+    "user:debug:local": "node scripts/user-debug.mjs --local",
     "deploy": "wrangler pages deploy public"
   },
   "devDependencies": {

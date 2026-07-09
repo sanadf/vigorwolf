@@ -14,7 +14,7 @@ export async function onRequestGet(context) {
 
   try {
     const users = await one("SELECT COUNT(*) AS n FROM users");
-    const accounts = await one("SELECT COUNT(*) AS n FROM users WHERE password != ''");
+    const accounts = await one("SELECT COUNT(*) AS n FROM users WHERE password_hash != '' OR password != ''");
     const products = await one("SELECT COUNT(*) AS n FROM products");
     const orders = await one("SELECT COUNT(*) AS n FROM orders");
 

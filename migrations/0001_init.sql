@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS users (
   id             INTEGER PRIMARY KEY AUTOINCREMENT,
   email          TEXT NOT NULL UNIQUE,          -- normalized (lowercase, trimmed)
   name           TEXT DEFAULT '',
-  password       TEXT DEFAULT '',               -- pbkdf2$iter$salt$hash ('' = order-only, no login yet)
+  password       TEXT DEFAULT '',               -- legacy column, unused by app code — kept for old DBs
+  password_hash  TEXT DEFAULT '',               -- pbkdf2$iter$salt$hash ('' = order-only, no login yet)
   phone          TEXT DEFAULT '',
   city           TEXT DEFAULT '',
   address        TEXT DEFAULT '',

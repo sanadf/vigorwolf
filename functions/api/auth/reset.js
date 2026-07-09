@@ -25,7 +25,7 @@ export async function onRequestPost(context) {
     if (!user) return fail("Account not found.", 400);
 
     const hash = await hashPassword(String(password));
-    await env.DB.prepare("UPDATE users SET password = ? WHERE id = ?").bind(hash, user.id).run();
+    await env.DB.prepare("UPDATE users SET password_hash = ? WHERE id = ?").bind(hash, user.id).run();
     // Clear all reset tokens for this user (single-use).
     await env.DB.prepare("DELETE FROM password_resets WHERE user_id = ?").bind(user.id).run();
 

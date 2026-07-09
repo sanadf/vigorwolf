@@ -45,9 +45,11 @@ export async function onRequestPost(context) {
   if (!isEmail(clean)) return fail("Please enter a valid email.");
 
   try {
-    // Only real (password-holding) accounts can reset.
-    const user = await env.DB.prepare("SELECT id, name FROM users WHERE email = ? AND password != ''")
-      .bind(clean).first();
+    // Only real (password-holding) accounts can reset. Covers both the
+    // canonical password_hash column and any not-yet-migrated legacy rows.
+    const user = await env.DB.prepare(
+      "SELECT id, name FROM users WHERE email = ? AND (password_hash != '' OR password != '')"
+    ).bind(clean).first();
 
     if (user) {
       // 32-byte random token; store only its SHA-256 hash.
