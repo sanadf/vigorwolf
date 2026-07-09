@@ -30,6 +30,8 @@
     "user:reset:local": "node scripts/user-reset.mjs --local",
     "user:debug:remote": "node scripts/user-debug.mjs --remote",
     "user:debug:local": "node scripts/user-debug.mjs --local",
+    "cleanup:resets:remote": "node scripts/cleanup-password-resets.mjs --remote",
+    "cleanup:resets:local": "node scripts/cleanup-password-resets.mjs --local",
     "deploy": "wrangler pages deploy public"
   },
   "devDependencies": {

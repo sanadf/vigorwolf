@@ -77,6 +77,17 @@ const esc = (s) => String(s).replace(/'/g, "''");
   r = await api("/api/auth/reset", { token: crypto.randomBytes(32).toString("hex"), password: "Whatever#1" });
   r.status === 400 ? ok("invalid token rejected") : no("invalid token rejected", JSON.stringify(r.body));
 
+  // 5) only one active token per user: requesting forgot twice leaves exactly one row
+  await api("/api/auth/forgot", { email });
+  await api("/api/auth/forgot", { email });
+  const activeTokens = d1(`SELECT COUNT(*) AS n FROM password_resets WHERE user_id=${uid}`)[0].n;
+  activeTokens === 1 ? ok("only one active reset token per user") : no("single active token", `count=${activeTokens}`);
+
+  // 6) password_resets has no used_at column — tokens are deleted, not soft-marked used
+  const cols = d1("PRAGMA table_info(password_resets)").map((c) => c.name);
+  !cols.includes("used_at") ? ok("password_resets has no used_at (delete-based, as expected)")
+    : no("no used_at column", `columns=${cols.join(",")}`);
+
   console.log(`\n${pass} passed, ${fail} failed\n`);
   process.exit(fail ? 1 : 0);
 })();

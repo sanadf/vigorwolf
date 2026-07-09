@@ -64,6 +64,14 @@ export async function onRequestPost(context) {
         "INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?,?,?)"
       ).bind(user.id, tokenHash, expires).run();
 
+      // Opportunistic housekeeping: sweep stale rows from anyone who never
+      // clicked their link. Runs after the response so it never adds latency.
+      context.waitUntil(
+        env.DB.prepare(
+          "DELETE FROM password_resets WHERE datetime(created_at) < datetime('now', '-24 hours')"
+        ).run()
+      );
+
       const link = `${siteUrl(env, request)}/reset-password.html?token=${raw}`;
       // Send in the background so response timing is constant (no enumeration).
       context.waitUntil(sendEmail(env, {
