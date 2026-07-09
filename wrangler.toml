@@ -27,6 +27,9 @@ database_id = "9deb43a7-fb8e-4a4a-ab40-4771aa62f66a"
 # should be added in the Cloudflare dashboard: Pages > Settings > Variables.
 [vars]
 SITE_NAME = "VIGORWOLF"
+# Canonical public site URL — used to build customer-facing links (e.g. password
+# reset emails) so the backend never hardcodes a *.pages.dev URL.
+SITE_URL = "https://vigorwolf.co"
 # Shown in Admin → Dashboard "Environment" line. Local dev auto-detects via
 # hostname; this labels the deployed environment.
 ENVIRONMENT = "production"
@@ -37,12 +40,16 @@ EMAIL_PROVIDER = "resend"
 # Admin login. Logging in with these once auto-creates/repairs the admin account.
 # Change the email here; for the PASSWORD set a secret in the dashboard
 # (npx wrangler pages secret put ADMIN_PASSWORD) or it defaults to VigorWolfAdmin123.
-ADMIN_EMAIL = "admin@vigorwolf.com"
+ADMIN_EMAIL = "vigorwolf1@gmail.com"
 
 # ----------------------------------------------------------------------------
-#  SECRETS ??? DO NOT put real keys here. Add them in the dashboard or via CLI:
-#    npx wrangler pages secret put SESSION_SECRET
-#    npx wrangler pages secret put RESEND_API_KEY
-#    npx wrangler pages secret put WEB3FORMS_KEY
-#    npx wrangler pages secret put RESEND_FROM     # e.g. "VIGORWOLF <orders@yourdomain.com>"
+#  SECRETS / dashboard values - DO NOT put real keys here. Set them in the
+#  Cloudflare dashboard (Pages > Settings > Variables and Secrets):
+#    SESSION_SECRET   (secret) - long random string; signs login/admin sessions
+#    RESEND_API_KEY   (secret) - from resend.com
+#    RESEND_FROM      (var)    - "VIGORWOLF <no-reply@vigorwolf.co>"
+#                               ONLY after the domain is verified in Resend;
+#                               until then leave it unset (defaults to
+#                               onboarding@resend.dev, which reaches your own
+#                               inbox for order alerts but NOT customers).
 # ----------------------------------------------------------------------------

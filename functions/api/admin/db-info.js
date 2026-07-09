@@ -1,7 +1,7 @@
 // GET /api/admin/db-info  (admin-only)
 // Confirms which database + environment the deployed code is actually talking to,
 // so you can verify you're on the real production D1 (not a local/simulated DB).
-import { json, fail } from "../_lib/http.js";
+import { json, fail, siteUrl } from "../_lib/http.js";
 import { requireAdmin } from "../_lib/auth.js";
 
 export async function onRequestGet(context) {
@@ -22,6 +22,8 @@ export async function onRequestGet(context) {
       ok: true,
       environment: isLocal ? "local (Miniflare)" : (env.ENVIRONMENT || "production/preview"),
       hostname: host,
+      siteUrl: siteUrl(env, request),
+      resendFrom: env.RESEND_FROM || "onboarding@resend.dev (default — verify a domain for customer emails)",
       isLocal,
       database: { driver: "cloudflare-d1", bound: !!env.DB, name: "vigorwolf-db" },
       counts: { users, registeredAccounts: accounts, products, orders },

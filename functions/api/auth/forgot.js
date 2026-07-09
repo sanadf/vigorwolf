@@ -1,9 +1,38 @@
 // POST /api/auth/forgot  { email }
 // Emails a secure reset link IF the account exists. Always returns the SAME
 // generic response so it never reveals whether an email is registered.
-import { ok, fail, readJson, isEmail } from "../_lib/http.js";
+import { ok, fail, readJson, isEmail, siteUrl } from "../_lib/http.js";
 import { sha256Hex } from "../_lib/auth.js";
 import { sendEmail } from "../_lib/email.js";
+
+// Professional, email-client-safe (table + inline styles) reset template.
+function resetEmailHtml(name, link, ttlMin) {
+  return `<!DOCTYPE html><html><body style="margin:0;background:#0a0a0b;font-family:Arial,Helvetica,sans-serif;color:#f5f5f4">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0b;padding:32px 16px">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#121214;border:1px solid #232327;border-radius:10px;overflow:hidden">
+        <tr><td style="padding:26px 30px;border-bottom:1px solid #232327">
+          <span style="font-size:22px;font-weight:800;letter-spacing:2px;color:#ffffff">VIGORWOLF</span>
+        </td></tr>
+        <tr><td style="padding:30px">
+          <h1 style="margin:0 0 14px;font-size:22px;color:#ffffff">Reset your password</h1>
+          <p style="margin:0 0 12px;font-size:15px;line-height:1.6;color:#c9c9cd">Hi ${name || "there"}, we received a request to reset your VIGORWOLF password. Tap the button below to choose a new one.</p>
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:22px 0">
+            <tr><td style="border-radius:6px;background:#ffffff">
+              <a href="${link}" style="display:inline-block;padding:14px 28px;font-size:14px;font-weight:700;letter-spacing:1px;color:#0a0a0b;text-decoration:none;text-transform:uppercase">Reset Password</a>
+            </td></tr>
+          </table>
+          <p style="margin:0 0 8px;font-size:13px;color:#9a9a9e">This link expires in <strong style="color:#f5f5f4">${ttlMin} minutes</strong>.</p>
+          <p style="margin:0 0 18px;font-size:13px;color:#9a9a9e">If you didn't request this, you can safely ignore this email — your password won't change.</p>
+          <p style="margin:0;font-size:12px;color:#6c6c72;word-break:break-all">Or paste this link into your browser:<br>${link}</p>
+        </td></tr>
+        <tr><td style="padding:18px 30px;border-top:1px solid #232327">
+          <p style="margin:0;font-size:11px;color:#6c6c72">© ${new Date().getFullYear()} VIGORWOLF · Culture. Tribe. Lifestyle.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table></body></html>`;
+}
 
 const norm = (e) => String(e || "").trim().toLowerCase();
 const GENERIC = "If an account exists for that email, a password reset link is on its way.";
@@ -33,12 +62,12 @@ export async function onRequestPost(context) {
         "INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?,?,?)"
       ).bind(user.id, tokenHash, expires).run();
 
-      const origin = new URL(request.url).origin;
-      const link = `${origin}/reset-password.html?token=${raw}`;
+      const link = `${siteUrl(env, request)}/reset-password.html?token=${raw}`;
       // Send in the background so response timing is constant (no enumeration).
       context.waitUntil(sendEmail(env, {
         to: clean,
-        subject: "VIGORWOLF — reset your password",
+        subject: "Reset your VIGORWOLF password",
+        html: resetEmailHtml(user.name, link, TTL_MIN),
         text:
 `Hi ${user.name || "there"},
 

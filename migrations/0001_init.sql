@@ -174,10 +174,10 @@ CREATE TABLE IF NOT EXISTS coupons (
 --  SEED DATA
 -- ============================================================================
 
--- Admin account.  Email: admin@vigorwolf.com   Password: VigorWolfAdmin123
--- To change: see README > "Where to change the admin email/password".
+-- Admin account.  Email: vigorwolf1@gmail.com   Password: VigorWolfAdmin123
+-- To change: run `npm run admin:reset:remote -- you@brand.com "NewPass"`.
 INSERT OR IGNORE INTO admin_users (email, password) VALUES
-('admin@vigorwolf.com',
+('vigorwolf1@gmail.com',
  'pbkdf2$100000$c124ccfa9f0928628858104ff789455e$120bdc47b47ee4b6e01fe73a14cf59b0401ff561939c5b8ea9a82f6237369fb2');
 
 -- Products -------------------------------------------------------------------

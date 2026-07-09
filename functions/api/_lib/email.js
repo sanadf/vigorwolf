@@ -14,7 +14,7 @@
 // until you verify a domain.
 
 // Send to a specific recipient. Returns { sent, provider, ... }.
-export async function sendEmail(env, { to, subject, text, replyTo }) {
+export async function sendEmail(env, { to, subject, text, html, replyTo }) {
   const provider = (env.EMAIL_PROVIDER || "").toLowerCase();
   const recipient = to || env.NOTIFY_EMAIL || "vigorwolf1@gmail.com";
 
@@ -29,7 +29,7 @@ export async function sendEmail(env, { to, subject, text, replyTo }) {
         headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           from: env.RESEND_FROM || "VIGORWOLF <onboarding@resend.dev>",
-          to: [recipient], subject, text, reply_to: replyTo || undefined,
+          to: [recipient], subject, text, html: html || undefined, reply_to: replyTo || undefined,
         }),
       });
       const body = await res.text();

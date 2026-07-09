@@ -44,3 +44,12 @@ export function parseJsonField(value, fallback) {
 }
 
 export const isEmail = (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || "").trim());
+
+// Canonical public site URL for customer-facing links (emails, etc.).
+// Prefers the configured domain; falls back to the request's own origin so
+// nothing ever hardcodes a *.pages.dev URL.
+export function siteUrl(env, request) {
+  const configured = env.PUBLIC_SITE_URL || env.SITE_URL || "";
+  const base = configured || new URL(request.url).origin;
+  return base.replace(/\/+$/, "");
+}

@@ -16,7 +16,7 @@ export async function onRequestPost(context) {
   const inPass = String(password);
 
   // Configured defaults (overridable in the Cloudflare dashboard).
-  const DEFAULT_EMAIL = String(env.ADMIN_EMAIL || "admin@vigorwolf.com").toLowerCase();
+  const DEFAULT_EMAIL = String(env.ADMIN_EMAIL || "vigorwolf1@gmail.com").toLowerCase();
   const DEFAULT_PASS = String(env.ADMIN_PASSWORD || "VigorWolfAdmin123");
 
   try {
