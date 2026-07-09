@@ -41,6 +41,7 @@ EMAIL_PROVIDER = "resend"
 # Change the email here; for the PASSWORD set a secret in the dashboard
 # (npx wrangler pages secret put ADMIN_PASSWORD) or it defaults to VigorWolfAdmin123.
 ADMIN_EMAIL = "vigorwolf1@gmail.com"
+RESEND_FROM = "VIGORWOLF <no-reply@vigorwolf.co>"
 
 # ----------------------------------------------------------------------------
 #  SECRETS / dashboard values - DO NOT put real keys here. Set them in the
