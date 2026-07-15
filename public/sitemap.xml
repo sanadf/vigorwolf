@@ -26,17 +26,17 @@
     <priority>0.5</priority>
   </url>
   <url>
-    <loc>https://vigorwolf.co/product.html?slug=vigorwolf-redline-tee</loc>
+    <loc>https://vigorwolf.co/product?slug=vigorwolf-redline-tee</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vigorwolf.co/product.html?slug=vigorwolf-oversized-tanktop</loc>
+    <loc>https://vigorwolf.co/product?slug=vigorwolf-oversized-tanktop</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://vigorwolf.co/product.html?slug=vigorwolf-jersey</loc>
+    <loc>https://vigorwolf.co/product?slug=vigorwolf-jersey</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
