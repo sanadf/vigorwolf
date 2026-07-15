@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Shop — VIGORWOLF</title>
   <meta name="description" content="Shop VIGORWOLF streetwear & gymwear. Tees, hoodies, jerseys and more. Limited drops.">
+  <link rel="canonical" href="https://vigorwolf.co/shop">
   <link rel="icon" type="image/png" href="/assets/media/favicon.png?v=8">
   <link rel="stylesheet" href="/assets/css/styles.css?v=8">
 <!-- Meta Pixel Code -->
@@ -32,6 +33,7 @@ src="https://www.facebook.com/tr?id=855477147358747&ev=PageView&noscript=1"
       <div class="container">
         <span class="eyebrow">The Armory</span>
         <h1 class="display mt-8">Shop</h1>
+        <p class="lead mt-8" style="max-width:620px">Explore the full VIGORWOLF collection — premium heavyweight tees, oversized tanktops, hoodies and jerseys from our limited drops. Cash on delivery across Jordan.</p>
       </div>
     </section>
 
@@ -63,7 +65,18 @@ src="https://www.facebook.com/tr?id=855477147358747&ev=PageView&noscript=1"
           </select>
         </div>
 
-        <div class="grid-products" data-grid><p class="text-muted">Loading…</p></div>
+        <div class="grid-products" data-grid>
+          <!-- Server-rendered product links are injected here for crawlers/no-JS;
+               the client script below replaces this with interactive cards. -->
+          <noscript>
+            <ul>
+              <li><a href="/product.html?slug=vigorwolf-redline-tee">VIGORWOLF Redline Tee</a></li>
+              <li><a href="/product.html?slug=vigorwolf-oversized-tanktop">VIGORWOLF Oversized Tanktop</a></li>
+              <li><a href="/product.html?slug=vigorwolf-jersey">VIGORWOLF Jersey</a></li>
+            </ul>
+          </noscript>
+          <p class="text-muted" data-grid-loading>Loading the latest drop…</p>
+        </div>
 
         <div class="empty hidden" data-empty>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 7h12l1 13H5z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>
@@ -92,7 +105,15 @@ src="https://www.facebook.com/tr?id=855477147358747&ev=PageView&noscript=1"
         ALL = res.products;
         VW.setProductIndex(ALL);
       } catch (e) {
-        grid.innerHTML = "<p class='text-muted'>Could not load products. Is the database seeded? (see README)</p>";
+        // Keep the underlying error in the console for debugging, but never show
+        // developer/error-like text to visitors (it can trigger a Soft 404).
+        console.error("[shop] product load failed:", e);
+        // If the server already rendered product links (crawlers/no-JS), leave
+        // them in place. Otherwise show a calm, retryable message.
+        if (!grid.querySelector("[data-product]")) {
+          grid.innerHTML =
+            "<p class='text-muted'>Our latest drop is loading. Please refresh in a moment, or <a class='link-underline' href='/shop'>reload the shop</a>.</p>";
+        }
         return;
       }
 

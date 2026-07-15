@@ -87,6 +87,17 @@ export async function onRequestGet(context) {
     ).all();
     return json({ ok: true, products: (results || []).map(serializeProduct) });
   } catch (err) {
+    // Structured, secret-free log so product-load failures are diagnosable in
+    // Cloudflare logs (e.g. from a Googlebot fetch) without leaking data.
+    console.error(JSON.stringify({
+      at: "api/products",
+      pathname: url.pathname,
+      slug: slug || null,
+      userAgent: request.headers.get("user-agent") || "",
+      dbBound: !!(env.DB && typeof env.DB.prepare === "function"),
+      status: 500,
+      error: String(err && err.message || err),
+    }));
     return fail("Failed to load products: " + err.message, 500);
   }
 }
