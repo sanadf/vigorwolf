@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Checkout — VIGORWOLF</title>
-  <link rel="icon" type="image/png" href="/assets/media/favicon.png?v=9">
-  <link rel="stylesheet" href="/assets/css/styles.css?v=9">
+  <link rel="icon" type="image/png" href="/assets/media/favicon.png?v=10">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=10">
 <!-- Meta Pixel Code -->
 <script>
 !function(f,b,e,v,n,t,s)
@@ -112,10 +112,10 @@ src="https://www.facebook.com/tr?id=855477147358747&ev=PageView&noscript=1"
   </main>
   <footer id="site-footer"></footer>
 
-  <script src="/assets/js/config.js?v=9"></script>
-  <script src="/assets/js/api.js?v=9"></script>
-  <script src="/assets/js/store.js?v=9"></script>
-  <script src="/assets/js/ui.js?v=9"></script>
+  <script src="/assets/js/config.js?v=10"></script>
+  <script src="/assets/js/api.js?v=10"></script>
+  <script src="/assets/js/store.js?v=10"></script>
+  <script src="/assets/js/ui.js?v=10"></script>
   <script>
     (async function () {
       const form = document.querySelector("[data-checkout]");
@@ -136,14 +136,22 @@ src="https://www.facebook.com/tr?id=855477147358747&ev=PageView&noscript=1"
       const state = { promoCode: "", promoDiscount: 0, promoFreeDelivery: false, redeemPoints: 0, pointsDiscount: 0, balance: 0 };
       const afterDiscount = () => round2(Math.max(0, subtotal - state.promoDiscount));
 
+      // Global delivery setting (admin-controlled). Server is still authoritative
+      // at order time; this just keeps the preview honest.
+      let delivery = { deliveryMode: "normal", freeDeliveryThreshold: 0 };
+      try { delivery = await API.deliverySettings(); } catch {}
+      const globalFreeShip = () =>
+        delivery.deliveryMode === "free_all" ||
+        (delivery.deliveryMode === "free_over_threshold" && subtotal >= (Number(delivery.freeDeliveryThreshold) || 0));
+
       // --- Jordan-only delivery: populate governorate dropdown (fees from config) ---
       const govs = VW_CONFIG.governorates || [];
       govs.forEach(g => form.city.insertAdjacentHTML("beforeend", `<option value="${g.value}">${g.label} — ${g.fee} JD</option>`));
       const selectedGov = () => govs.find(g => g.value === form.city.value) || null;
       const baseShip = () => { const g = selectedGov(); return g ? g.fee : 0; };
-      // Client preview only. Delivery is recomputed server-side (global setting +
-      // promo) at order time; the server is always authoritative.
-      const shipping = () => (state.promoFreeDelivery ? 0 : baseShip());
+      // Free when the promo code grants it OR the store's global setting does.
+      const freeShip = () => state.promoFreeDelivery || globalFreeShip();
+      const shipping = () => (freeShip() ? 0 : baseShip());
       const total = () => round2(Math.max(0, afterDiscount() - state.pointsDiscount + shipping()));
 
       // --- phone normalization (mirror of server-side E.164 logic) ---
@@ -167,7 +175,7 @@ src="https://www.facebook.com/tr?id=855477147358747&ev=PageView&noscript=1"
           rows += `<div class="summary-row"><span>Promo (${state.promoCode})</span><span>− ${money(state.promoDiscount)}</span></div>`;
         if (state.pointsDiscount > 0)
           rows += `<div class="summary-row"><span>Points (${state.redeemPoints})</span><span>− ${money(state.pointsDiscount)}</span></div>`;
-        const shipCell = !g ? "—" : (state.promoFreeDelivery ? "FREE" : money(shipping()));
+        const shipCell = !g ? "—" : (freeShip() ? "FREE" : money(shipping()));
         rows += `<div class="summary-row"><span>Delivery <span style="color:var(--muted-2)">(${shipLabel})</span></span><span>${shipCell}</span></div>`;
         rows += `<div class="summary-row summary-row--total"><span>Total</span><span>${money(total())}</span></div>`;
         summaryEl.innerHTML = rows;

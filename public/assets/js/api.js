@@ -28,6 +28,7 @@
     userPoints: (email) => request("/api/user/points?email=" + encodeURIComponent(email)),
     validateCoupon: (code, subtotal) => request("/api/coupons/validate", { method: "POST", body: JSON.stringify({ code, subtotal }) }),
     validatePromo: (code, items, email, city) => request("/api/promo/validate", { method: "POST", body: JSON.stringify({ code, items, email, city }) }),
+    deliverySettings: () => request("/api/settings"),
 
     // customer accounts (real, D1-backed)
     auth: {
