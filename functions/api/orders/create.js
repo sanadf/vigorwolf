@@ -8,6 +8,8 @@ import { sendNotification } from "../_lib/email.js";
 import {
   validateCoupon, getBalance, ensureUser, pointsToJd, earnedPointsFor, round2,
 } from "../_lib/loyalty.js";
+import { validateAndComputePromo } from "../_lib/promo.js";
+import { applyGlobalDelivery } from "../_lib/settings.js";
 import { resolveShipping } from "../_lib/shipping.js";
 import { normalizePhone, isValidPhone } from "../_lib/phone.js";
 import { SIZE_COLUMN } from "../products/index.js";
@@ -79,45 +81,75 @@ export async function onRequestPost(context) {
     }
 
     const subtotal = round2(resolved.reduce((s, i) => s + i.price * i.qty, 0));
+    const orderEmail = String(c.email).trim().toLowerCase();
 
-    // 2) Coupon discount (applied first)
+    // 2a) Promo code (go-forward system). Server-validated; product/order
+    //     discount is applied first, free-delivery handled at the shipping step.
+    let promo = null, promoDiscount = 0, promoFreeDelivery = false;
+    if (body.promoCode && String(body.promoCode).trim()) {
+      const pv = await validateAndComputePromo(env, {
+        code: body.promoCode, subtotal, items: resolved, email: orderEmail,
+      });
+      if (!pv.valid) return fail(pv.message || "Invalid promo code.");
+      promo = pv.promo;
+      promoDiscount = pv.discountAmount;
+      promoFreeDelivery = pv.freeDelivery;
+    }
+
+    // 2b) Legacy coupon (only when no promo code is used — never stack the two).
     let couponCode = "", couponDiscount = 0, couponRow = null;
-    if (body.couponCode && String(body.couponCode).trim()) {
+    if (!promo && body.couponCode && String(body.couponCode).trim()) {
       const cv = await validateCoupon(env, body.couponCode, subtotal);
       if (!cv.valid) return fail(cv.message || "Invalid coupon.");
       couponCode = cv.coupon.code; couponDiscount = cv.discount; couponRow = cv.coupon;
     }
-    const afterCoupon = round2(subtotal - couponDiscount);
+    // Order/product discount (promo or legacy coupon) — never below zero.
+    const orderDiscount = round2(Math.min(promoDiscount + couponDiscount, subtotal));
+    const afterDiscount = round2(Math.max(0, subtotal - orderDiscount));
 
-    // 3) Loyalty points (logged-in only), applied second
+    // 3) Loyalty points (logged-in only), applied after the order discount.
     let redeemPoints = 0, pointsDiscount = 0, balance = 0;
     if (loggedIn) {
       balance = (await getBalance(env, userEmail)).balance;
       const requested = Math.max(0, parseInt(body.redeemPoints, 10) || 0);
-      const maxByTotal = Math.floor(afterCoupon * 100); // points that would zero the remaining total
+      const maxByTotal = Math.floor(afterDiscount * 100); // points that would zero the remaining total
       redeemPoints = Math.min(requested, balance, maxByTotal);
       pointsDiscount = round2(pointsToJd(redeemPoints));
     }
 
-    // 4) Shipping (added after discounts) + final total
-    const shipping = ship.fee;
-    const total = round2(afterCoupon - pointsDiscount + shipping);
-    // 5) Points earned (from subtotal before discounts, logged-in only)
+    // 4) Delivery: governorate base fee -> global delivery setting -> free-delivery code.
+    const baseShipping = ship.fee;
+    const globalDelivery = await applyGlobalDelivery(env, baseShipping, subtotal);
+    const shipping = promoFreeDelivery ? 0 : globalDelivery.fee; // actual charged shipping
+    const shippingDiscount = round2(Math.max(0, baseShipping - shipping));
+
+    // 5) Final total (never negative).
+    const total = round2(Math.max(0, afterDiscount - pointsDiscount + shipping));
+    // Points earned (from subtotal before discounts, logged-in only)
     const pointsEarned = loggedIn ? earnedPointsFor(subtotal) : 0;
     const paymentMethod = body.paymentMethod || "Cash on Delivery";
     const number = orderNumber();
 
-    // Persist order
+    // Persist order. New promo/delivery columns snapshot the exact math used so
+    // historical reports stay accurate even if the code is later edited/deleted.
+    const promoAppliedAt = promo ? new Date().toISOString() : "";
     const res = await env.DB.prepare(
       `INSERT INTO orders (order_number, customer_name, phone, email, city, address, notes,
         payment_method, status, subtotal, total, user_email,
-        coupon_code, coupon_discount_jd, points_redeemed, points_discount_jd, points_earned, shipping_jd, total_after_discounts)
-       VALUES (?,?,?,?,?,?,?,?,'Pending',?,?,?,?,?,?,?,?,?,?)`
+        coupon_code, coupon_discount_jd, points_redeemed, points_discount_jd, points_earned, shipping_jd, total_after_discounts,
+        promo_code_id, promo_code, campaign_name, influencer_name, discount_type, discount_value, discount_amount_jod,
+        subtotal_before_discount_jod, shipping_before_discount_jod, shipping_discount_jod, final_shipping_jod, final_total_jod, promo_applied_at)
+       VALUES (?,?,?,?,?,?,?,?,'Pending',?,?,?,?,?,?,?,?,?,?,
+        ?,?,?,?,?,?,?,?,?,?,?,?,?)`
     ).bind(
-      number, String(c.name).trim(), phone, String(c.email).trim().toLowerCase(),
+      number, String(c.name).trim(), phone, orderEmail,
       governorate, String(c.address).trim(), String(c.notes || "").trim(),
       paymentMethod, subtotal, total, userEmail,
-      couponCode, couponDiscount, redeemPoints, pointsDiscount, pointsEarned, shipping, total
+      couponCode, couponDiscount, redeemPoints, pointsDiscount, pointsEarned, shipping, total,
+      promo ? promo.id : null, promo ? promo.code : "", promo ? (promo.campaign_name || "") : "",
+      promo ? (promo.influencer_name || "") : "", promo ? promo.discount_type : "",
+      promo ? promo.discount_value : 0, promoDiscount,
+      subtotal, baseShipping, shippingDiscount, shipping, total, promoAppliedAt
     ).run();
     const orderId = res.meta.last_row_id;
 
@@ -145,9 +177,23 @@ export async function onRequestPost(context) {
       }
     }
 
-    // Coupon usage
+    // Coupon usage (legacy)
     if (couponRow) {
       await env.DB.prepare("UPDATE coupons SET used_count = used_count + 1 WHERE id = ?").bind(couponRow.id).run();
+    }
+
+    // Promo usage: record once per order (UNIQUE(order_id) makes retries/refreshes
+    // idempotent) and only bump used_count when the ledger row was actually inserted.
+    if (promo) {
+      const useRes = await env.DB.prepare(
+        `INSERT OR IGNORE INTO promo_code_uses
+          (promo_code_id, promo_code, order_id, order_number, customer_email, discount_amount_jod, shipping_discount_jod)
+         VALUES (?,?,?,?,?,?,?)`
+      ).bind(promo.id, promo.code, orderId, number, orderEmail, promoDiscount, promoFreeDelivery ? shippingDiscount : 0).run();
+      if (useRes.meta.changes) {
+        await env.DB.prepare("UPDATE promo_codes SET used_count = used_count + 1, updated_at = datetime('now') WHERE id = ?")
+          .bind(promo.id).run();
+      }
     }
 
     // Loyalty ledger + balance update
@@ -177,11 +223,16 @@ export async function onRequestPost(context) {
       const opt = [i.size, i.color].filter(Boolean).join(" / ");
       return `- ${i.name}${opt ? ` — ${opt}` : ""} — x${i.qty} — ${(i.price * i.qty).toFixed(2)} JD`;
     }).join("\n");
+    const deliveryLabel = shipping === 0
+      ? `Delivery (${governorate}): FREE${baseShipping > 0 ? ` (was ${baseShipping.toFixed(2)} JD)` : ""}`
+      : `Delivery (${governorate}): ${shipping.toFixed(2)} JD`;
     const totalsLines = [
       `Subtotal:          ${subtotal.toFixed(2)} JD`,
+      promo && promoDiscount ? `Promo (${promo.code}):     -${promoDiscount.toFixed(2)} JD` : null,
+      promo && promoFreeDelivery ? `Promo (${promo.code}):     Free delivery` : null,
       couponDiscount ? `Coupon (${couponCode}):    -${couponDiscount.toFixed(2)} JD` : null,
       pointsDiscount ? `Points (${redeemPoints}):       -${pointsDiscount.toFixed(2)} JD` : null,
-      `Delivery (${governorate}): ${shipping.toFixed(2)} JD`,
+      deliveryLabel,
       `TOTAL:             ${total.toFixed(2)} JD`,
     ].filter(Boolean).join("\n");
 
@@ -235,6 +286,8 @@ ${loggedIn ? `\nLoyalty: earned ${pointsEarned} pts · new balance ${newBalance}
         orderNumber: number, customerName: c.name, phone, email: c.email,
         city: governorate, address: c.address, notes: c.notes || "", paymentMethod,
         status: "Pending", subtotal, couponCode, couponDiscount,
+        promoCode: promo ? promo.code : "", promoDiscount, promoFreeDelivery,
+        baseShipping, shippingDiscount,
         pointsRedeemed: redeemPoints, pointsDiscount, pointsEarned, shipping, total, items: resolved,
       },
       loyalty: loggedIn ? { pointsEarned, pointsRedeemed: redeemPoints, newBalance } : null,

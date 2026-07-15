@@ -75,12 +75,13 @@ src="https://www.facebook.com/tr?id=855477147358747&ev=PageView&noscript=1"
           <aside style="position:sticky;top:90px">
             <div class="panel" data-summary></div>
 
-            <!-- Coupon -->
+            <!-- Promo code -->
             <div class="panel mt-16">
-              <span class="eyebrow eyebrow--plain mb-8">Discount Code</span>
+              <span class="eyebrow eyebrow--plain mb-8">Promo Code</span>
               <div class="flex gap-8" style="margin-top:10px">
-                <input class="input" data-coupon placeholder="e.g. PACK10" style="text-transform:uppercase">
+                <input class="input" data-coupon placeholder="Enter promo code" style="text-transform:uppercase">
                 <button class="btn btn--sm" type="button" data-coupon-apply>Apply</button>
+                <button class="btn btn--sm btn--ghost" type="button" data-coupon-remove hidden>Remove</button>
               </div>
               <p class="signup-msg" data-coupon-msg></p>
             </div>
@@ -132,15 +133,18 @@ src="https://www.facebook.com/tr?id=855477147358747&ev=PageView&noscript=1"
       const subtotal = round2(VW.Cart.subtotal());
       const me = await VW.User.me(); // validated session (or null for guest)
 
-      const state = { couponCode: "", couponDiscount: 0, redeemPoints: 0, pointsDiscount: 0, balance: 0 };
-      const afterCoupon = () => round2(subtotal - state.couponDiscount);
+      const state = { promoCode: "", promoDiscount: 0, promoFreeDelivery: false, redeemPoints: 0, pointsDiscount: 0, balance: 0 };
+      const afterDiscount = () => round2(Math.max(0, subtotal - state.promoDiscount));
 
       // --- Jordan-only delivery: populate governorate dropdown (fees from config) ---
       const govs = VW_CONFIG.governorates || [];
       govs.forEach(g => form.city.insertAdjacentHTML("beforeend", `<option value="${g.value}">${g.label} — ${g.fee} JD</option>`));
       const selectedGov = () => govs.find(g => g.value === form.city.value) || null;
-      const shipping = () => { const g = selectedGov(); return g ? g.fee : 0; };
-      const total = () => round2(afterCoupon() - state.pointsDiscount + shipping());
+      const baseShip = () => { const g = selectedGov(); return g ? g.fee : 0; };
+      // Client preview only. Delivery is recomputed server-side (global setting +
+      // promo) at order time; the server is always authoritative.
+      const shipping = () => (state.promoFreeDelivery ? 0 : baseShip());
+      const total = () => round2(Math.max(0, afterDiscount() - state.pointsDiscount + shipping()));
 
       // --- phone normalization (mirror of server-side E.164 logic) ---
       function normalizePhone(raw) {
@@ -159,11 +163,12 @@ src="https://www.facebook.com/tr?id=855477147358747&ev=PageView&noscript=1"
           <div class="mt-16">${items.map(i => `
             <div class="summary-row"><span>${i.name} <span style="color:var(--muted-2)">×${i.qty} · ${i.size}/${i.color}</span></span><span>${money(i.price*i.qty)}</span></div>`).join("")}</div>
           <div class="summary-row"><span>Subtotal</span><span>${money(subtotal)}</span></div>`;
-        if (state.couponDiscount > 0)
-          rows += `<div class="summary-row"><span>Coupon (${state.couponCode})</span><span>− ${money(state.couponDiscount)}</span></div>`;
+        if (state.promoDiscount > 0)
+          rows += `<div class="summary-row"><span>Promo (${state.promoCode})</span><span>− ${money(state.promoDiscount)}</span></div>`;
         if (state.pointsDiscount > 0)
           rows += `<div class="summary-row"><span>Points (${state.redeemPoints})</span><span>− ${money(state.pointsDiscount)}</span></div>`;
-        rows += `<div class="summary-row"><span>Delivery <span style="color:var(--muted-2)">(${shipLabel})</span></span><span>${g ? money(shipping()) : "—"}</span></div>`;
+        const shipCell = !g ? "—" : (state.promoFreeDelivery ? "FREE" : money(shipping()));
+        rows += `<div class="summary-row"><span>Delivery <span style="color:var(--muted-2)">(${shipLabel})</span></span><span>${shipCell}</span></div>`;
         rows += `<div class="summary-row summary-row--total"><span>Total</span><span>${money(total())}</span></div>`;
         summaryEl.innerHTML = rows;
       }
@@ -186,7 +191,7 @@ src="https://www.facebook.com/tr?id=855477147358747&ev=PageView&noscript=1"
         document.querySelector("[data-guest-note]").hidden = false;
       }
 
-      const maxRedeemable = () => Math.min(state.balance, Math.floor(afterCoupon() * 100));
+      const maxRedeemable = () => Math.min(state.balance, Math.floor(afterDiscount() * 100));
       function capRedeem() {
         if (state.redeemPoints > maxRedeemable()) {
           state.redeemPoints = maxRedeemable();
@@ -195,20 +200,46 @@ src="https://www.facebook.com/tr?id=855477147358747&ev=PageView&noscript=1"
       }
 
       const couponMsg = document.querySelector("[data-coupon-msg]");
-      document.querySelector("[data-coupon-apply]").addEventListener("click", async () => {
-        const code = document.querySelector("[data-coupon]").value.trim();
+      const couponInput = document.querySelector("[data-coupon]");
+      const removeBtn = document.querySelector("[data-coupon-remove]");
+      const cartItemsPayload = () => items.map(i => ({ productId: i.productId, qty: i.qty }));
+
+      function clearPromo(msg) {
+        state.promoCode = ""; state.promoDiscount = 0; state.promoFreeDelivery = false;
+        try { sessionStorage.removeItem("vw_promo"); } catch {}
+        removeBtn.hidden = true;
+        if (msg != null) { couponMsg.textContent = msg; couponMsg.setAttribute("data-type", "err"); }
+        capRedeem(); renderSummary();
+      }
+
+      async function applyPromo(code, { silent = false } = {}) {
         couponMsg.textContent = "";
-        if (!code) { state.couponCode = ""; state.couponDiscount = 0; capRedeem(); renderSummary(); return; }
+        if (!code) { clearPromo(); return; }
         try {
-          const r = await API.validateCoupon(code, subtotal);
-          state.couponCode = r.code; state.couponDiscount = r.discount;
-          couponMsg.textContent = `Applied — you saved ${money(r.discount)}.`; couponMsg.setAttribute("data-type", "ok");
+          const r = await API.validatePromo(code, cartItemsPayload(), form.email.value.trim(), form.city.value);
+          state.promoCode = r.code; state.promoDiscount = r.discount || 0; state.promoFreeDelivery = !!r.freeDelivery;
+          couponInput.value = r.code; removeBtn.hidden = false;
+          try { sessionStorage.setItem("vw_promo", r.code); } catch {}
+          couponMsg.textContent = r.freeDelivery
+            ? "Applied — free delivery on this order."
+            : `Applied — you saved ${money(state.promoDiscount)}.`;
+          couponMsg.setAttribute("data-type", "ok");
         } catch (e) {
-          state.couponCode = ""; state.couponDiscount = 0;
-          couponMsg.textContent = e.message; couponMsg.setAttribute("data-type", "err");
+          state.promoCode = ""; state.promoDiscount = 0; state.promoFreeDelivery = false; removeBtn.hidden = true;
+          if (!silent) { couponMsg.textContent = e.message; couponMsg.setAttribute("data-type", "err"); }
+          else { try { sessionStorage.removeItem("vw_promo"); } catch {} }
         }
         capRedeem(); renderSummary();
-      });
+      }
+
+      document.querySelector("[data-coupon-apply]").addEventListener("click", () => applyPromo(couponInput.value.trim()));
+      removeBtn.addEventListener("click", () => { couponInput.value = ""; clearPromo("Promo code removed."); });
+
+      // Restore a previously-applied code across a page refresh (revalidated).
+      try {
+        const saved = sessionStorage.getItem("vw_promo");
+        if (saved) { couponInput.value = saved; applyPromo(saved, { silent: true }); }
+      } catch {}
 
       const redeemMsg = document.querySelector("[data-redeem-msg]");
       const redeemInput = document.querySelector("[data-redeem]");
@@ -250,11 +281,12 @@ src="https://www.facebook.com/tr?id=855477147358747&ev=PageView&noscript=1"
               address: fullAddress, notes: form.notes.value.trim(),
             },
             paymentMethod: "Cash on Delivery",
-            couponCode: state.couponCode,
+            promoCode: state.promoCode,
             redeemPoints: state.redeemPoints,
             items: items.map(i => ({ productId: i.productId, size: i.size, color: i.color, qty: i.qty })),
           });
           VW.Cart.clear();
+          try { sessionStorage.removeItem("vw_promo"); } catch {}
           location.href = "/order-confirmation.html?order=" + encodeURIComponent(res.orderNumber);
         } catch (err) {
           errEl.textContent = err.message || "Could not place order. Try again.";

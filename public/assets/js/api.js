@@ -27,6 +27,7 @@
     ordersByEmail: (email) => request("/api/orders?email=" + encodeURIComponent(email)),
     userPoints: (email) => request("/api/user/points?email=" + encodeURIComponent(email)),
     validateCoupon: (code, subtotal) => request("/api/coupons/validate", { method: "POST", body: JSON.stringify({ code, subtotal }) }),
+    validatePromo: (code, items, email, city) => request("/api/promo/validate", { method: "POST", body: JSON.stringify({ code, items, email, city }) }),
 
     // customer accounts (real, D1-backed)
     auth: {
@@ -65,6 +66,13 @@
       users: () => request("/api/admin/users"),
       adjustPoints: (id, points, note) => request(`/api/admin/users/${id}/points`, { method: "PATCH", body: JSON.stringify({ points, note }) }),
       dbInfo: () => request("/api/admin/db-info"),
+      // promo codes + store settings
+      promos: () => request("/api/admin/promos"),
+      createPromo: (p) => request("/api/admin/promos", { method: "POST", body: JSON.stringify(p) }),
+      updatePromo: (id, p) => request(`/api/admin/promos/${id}`, { method: "PATCH", body: JSON.stringify(p) }),
+      deletePromo: (id) => request(`/api/admin/promos/${id}`, { method: "DELETE" }),
+      settings: () => request("/api/admin/settings"),
+      updateSettings: (s) => request("/api/admin/settings", { method: "PATCH", body: JSON.stringify(s) }),
     },
   };
 })();

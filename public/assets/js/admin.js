@@ -19,6 +19,7 @@
     ["orders.html", "Orders", ICON.order],
     ["drops.html", "Drops", ICON.drop],
     ["coupons.html", "Coupons", ICON.tag],
+    ["promos.html", "Promo Codes", ICON.tag],
     ["loyalty.html", "Loyalty", ICON.star],
     ["signups.html", "Signups", ICON.mail],
   ];

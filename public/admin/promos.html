@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Promo Codes — VIGORWOLF Admin</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/png" href="/assets/media/favicon.png?v=8">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=8">
+</head>
+<body>
+  <div class="admin-shell">
+    <aside id="admin-side"></aside>
+    <main class="admin-main">
+      <div class="admin-topbar">
+        <div class="flex center gap-16">
+          <button class="admin-menu-btn" data-admin-menu aria-label="Menu">☰</button>
+          <h1>Promo Codes</h1>
+        </div>
+        <button class="btn" data-new>+ New Promo Code</button>
+      </div>
+
+      <!-- Global delivery control -->
+      <div class="panel mb-16" data-delivery-panel>
+        <span class="eyebrow eyebrow--plain mb-8">Global Delivery</span>
+        <p class="text-muted" style="font-size:.82rem;margin:6px 0 12px">
+          Controls how delivery is charged for every order. Applied server-side — the customer's browser can't change it.
+          When set to normal, the standard Jordan governorate pricing applies.
+        </p>
+        <div class="form-2col">
+          <div class="field">
+            <label>Delivery mode</label>
+            <select class="select" data-delivery-mode>
+              <option value="normal">Normal — governorate pricing (Amman 2 JD, else 3 JD)</option>
+              <option value="free_all">Free delivery for all orders</option>
+              <option value="free_over_threshold">Free delivery over a minimum order value</option>
+            </select>
+          </div>
+          <div class="field" data-threshold-wrap hidden>
+            <label>Free over (JD)</label>
+            <input class="input" type="number" step="0.01" min="0" data-delivery-threshold value="0">
+          </div>
+        </div>
+        <div class="flex gap-16 center">
+          <button class="btn btn--sm" type="button" data-delivery-save>Save Delivery Setting</button>
+          <span class="signup-msg" data-delivery-msg></span>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>Code</th><th>Campaign / Influencer</th><th>Type</th><th>Value</th><th>Window</th><th>Uses</th><th>Active</th><th>Actions</th></tr></thead>
+          <tbody data-rows><tr><td colspan="8" class="text-muted">Loading…</td></tr></tbody>
+        </table>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-back" data-modal>
+    <div class="modal">
+      <h2 data-modal-title>New Promo Code</h2>
+      <form data-form>
+        <input type="hidden" name="id">
+        <div class="form-2col">
+          <div class="field"><label>Code <span class="req">*</span></label><input class="input" name="code" style="text-transform:uppercase" required placeholder="INFLUENCER1"></div>
+          <div class="field"><label>Discount type</label><select class="select" name="discountType">
+            <option value="percentage">Percentage (%)</option>
+            <option value="fixed">Fixed (JD)</option>
+            <option value="free_delivery">Free delivery only</option>
+          </select></div>
+        </div>
+        <div class="form-2col">
+          <div class="field"><label>Value <span class="text-muted">(% or JD; ignored for free delivery)</span></label><input class="input" name="discountValue" type="number" step="0.01" value="0"></div>
+          <div class="field"><label>Max discount cap (JD) <span class="text-muted">(0 = none)</span></label><input class="input" name="maxDiscountAmount" type="number" step="0.01" value="0"></div>
+        </div>
+        <div class="form-2col">
+          <div class="field"><label>Campaign name</label><input class="input" name="campaignName" placeholder="Summer 2026"></div>
+          <div class="field"><label>Influencer name</label><input class="input" name="influencerName" placeholder="@handle"></div>
+        </div>
+        <div class="form-2col">
+          <div class="field"><label>Minimum order (JD)</label><input class="input" name="minOrderAmount" type="number" step="0.01" value="0"></div>
+          <div class="field"><label>Total usage limit <span class="text-muted">(0 = unlimited)</span></label><input class="input" name="maxUses" type="number" value="0"></div>
+        </div>
+        <div class="form-2col">
+          <div class="field"><label>Per-customer limit <span class="text-muted">(0 = unlimited)</span></label><input class="input" name="perCustomerLimit" type="number" value="0"></div>
+          <div class="field"><label>&nbsp;</label><label class="checkline"><input type="checkbox" name="firstOrderOnly"> First order only</label></div>
+        </div>
+        <div class="form-2col">
+          <div class="field"><label>Starts <span class="text-muted">(optional)</span></label><input class="input" name="startsAt" type="date"></div>
+          <div class="field"><label>Expires <span class="text-muted">(optional)</span></label><input class="input" name="expiresAt" type="date"></div>
+        </div>
+        <div class="field"><label>Restrict to products <span class="text-muted">(optional — leave all unchecked for all products)</span></label>
+          <div data-product-checks class="flex gap-16 wrap" style="margin-top:8px"></div>
+        </div>
+        <label class="checkline"><input type="checkbox" name="active" checked> Active</label>
+        <p class="field-error mb-16" data-modal-error></p>
+        <div class="flex gap-16 wrap">
+          <button class="btn grow" type="submit" data-save>Save Promo Code</button>
+          <button class="btn btn--ghost" type="button" data-cancel>Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="/assets/js/config.js?v=8"></script>
+  <script src="/assets/js/api.js?v=8"></script>
+  <script src="/assets/js/admin.js?v=8"></script>
+  <script>
+    ADMIN.guard("promos.html", async () => {
+      const rowsEl = document.querySelector("[data-rows]");
+      const modal = document.querySelector("[data-modal]");
+      const form = document.querySelector("[data-form]");
+      const errEl = document.querySelector("[data-modal-error]");
+      let promos = [], products = [];
+
+      // ---- Delivery setting ----
+      const modeSel = document.querySelector("[data-delivery-mode]");
+      const threshWrap = document.querySelector("[data-threshold-wrap]");
+      const threshInput = document.querySelector("[data-delivery-threshold]");
+      const deliveryMsg = document.querySelector("[data-delivery-msg]");
+      const syncThreshVisibility = () => { threshWrap.hidden = modeSel.value !== "free_over_threshold"; };
+      modeSel.addEventListener("change", syncThreshVisibility);
+      async function loadSettings() {
+        try {
+          const s = await API.admin.settings();
+          modeSel.value = s.deliveryMode; threshInput.value = s.freeDeliveryThreshold; syncThreshVisibility();
+        } catch (e) { deliveryMsg.textContent = e.message; deliveryMsg.setAttribute("data-type", "err"); }
+      }
+      document.querySelector("[data-delivery-save]").addEventListener("click", async () => {
+        deliveryMsg.textContent = "";
+        try {
+          await API.admin.updateSettings({ deliveryMode: modeSel.value, freeDeliveryThreshold: threshInput.value });
+          deliveryMsg.textContent = "Saved."; deliveryMsg.setAttribute("data-type", "ok");
+        } catch (e) { deliveryMsg.textContent = e.message; deliveryMsg.setAttribute("data-type", "err"); }
+      });
+
+      const typeLabel = (t) => t === "percentage" ? "Percentage" : t === "fixed" ? "Fixed" : "Free delivery";
+      const valueLabel = (p) => p.discountType === "percentage" ? p.discountValue + "%" : p.discountType === "fixed" ? p.discountValue + " JD" : "—";
+
+      async function load() {
+        try {
+          promos = (await API.admin.promos()).promos;
+          rowsEl.innerHTML = promos.length ? promos.map(p => `
+            <tr>
+              <td class="mono"><b>${ADMIN.esc(p.code)}</b></td>
+              <td style="font-size:.8rem">${ADMIN.esc(p.campaignName || "—")}${p.influencerName ? `<br><span class="text-muted">${ADMIN.esc(p.influencerName)}</span>` : ""}</td>
+              <td>${typeLabel(p.discountType)}</td>
+              <td class="mono">${valueLabel(p)}</td>
+              <td class="mono" style="font-size:.72rem">${(p.startsAt || "—").slice(0,10)} → ${(p.expiresAt || "—").slice(0,10)}</td>
+              <td class="mono">${p.usedCount}${p.maxUses ? " / " + p.maxUses : ""}</td>
+              <td><span class="pill pill--${p.active ? "delivered" : "cancelled"}">${p.active ? "Active" : "Off"}</span></td>
+              <td><div class="actions-inline">
+                <button class="btn btn--sm btn--ghost" data-edit="${p.id}">Edit</button>
+                <button class="btn btn--sm btn--ghost" data-del="${p.id}" data-danger>Delete</button>
+              </div></td>
+            </tr>`).join("") : `<tr><td colspan="8" class="text-muted">No promo codes yet. Create one (e.g. INFLUENCER1).</td></tr>`;
+        } catch (e) { rowsEl.innerHTML = `<tr><td colspan="8" class="text-muted">${e.message}</td></tr>`; }
+      }
+
+      function renderProductChecks(selected) {
+        const set = new Set((selected || []).map(Number));
+        document.querySelector("[data-product-checks]").innerHTML = products.map(p =>
+          `<label class="checkline"><input type="checkbox" name="productId" value="${p.id}"${set.has(p.id) ? " checked" : ""}> ${ADMIN.esc(p.name)}</label>`
+        ).join("") || '<span class="text-muted">No products.</span>';
+      }
+
+      function openModal(p) {
+        errEl.textContent = ""; form.reset();
+        document.querySelector("[data-modal-title]").textContent = p ? "Edit Promo Code" : "New Promo Code";
+        form.id.value = p ? p.id : "";
+        if (p) {
+          form.code.value = p.code; form.discountType.value = p.discountType; form.discountValue.value = p.discountValue;
+          form.maxDiscountAmount.value = p.maxDiscountAmount; form.campaignName.value = p.campaignName;
+          form.influencerName.value = p.influencerName; form.minOrderAmount.value = p.minOrderAmount;
+          form.maxUses.value = p.maxUses; form.perCustomerLimit.value = p.perCustomerLimit;
+          form.firstOrderOnly.checked = !!p.firstOrderOnly;
+          form.startsAt.value = (p.startsAt || "").slice(0, 10); form.expiresAt.value = (p.expiresAt || "").slice(0, 10);
+          form.active.checked = !!p.active;
+        }
+        renderProductChecks(p ? p.productIds : []);
+        modal.setAttribute("data-open", "1");
+      }
+      const close = () => modal.setAttribute("data-open", "0");
+      document.querySelector("[data-new]").addEventListener("click", () => openModal(null));
+      document.querySelector("[data-cancel]").addEventListener("click", close);
+      modal.addEventListener("click", (e) => { if (e.target === modal) close(); });
+
+      rowsEl.addEventListener("click", async (e) => {
+        const edit = e.target.closest("[data-edit]");
+        const del = e.target.closest("[data-del]");
+        if (edit) openModal(promos.find(p => p.id == edit.getAttribute("data-edit")));
+        if (del) {
+          if (!confirm("Delete this promo code? Its usage history is kept for reporting.")) return;
+          try { await API.admin.deletePromo(del.getAttribute("data-del")); await load(); } catch (ex) { alert(ex.message); }
+        }
+      });
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault(); errEl.textContent = "";
+        const btn = document.querySelector("[data-save]");
+        btn.setAttribute("data-loading", "1"); btn.disabled = true;
+        const productIds = [...form.querySelectorAll('input[name="productId"]:checked')].map(i => Number(i.value));
+        const payload = {
+          code: form.code.value.trim(), discountType: form.discountType.value, discountValue: form.discountValue.value,
+          maxDiscountAmount: form.maxDiscountAmount.value, campaignName: form.campaignName.value.trim(),
+          influencerName: form.influencerName.value.trim(), minOrderAmount: form.minOrderAmount.value,
+          maxUses: form.maxUses.value, perCustomerLimit: form.perCustomerLimit.value,
+          firstOrderOnly: form.firstOrderOnly.checked, startsAt: form.startsAt.value, expiresAt: form.expiresAt.value,
+          productIds, active: form.active.checked,
+        };
+        try {
+          if (form.id.value) await API.admin.updatePromo(form.id.value, payload);
+          else await API.admin.createPromo(payload);
+          close(); await load();
+        } catch (ex) { errEl.textContent = ex.message; }
+        finally { btn.removeAttribute("data-loading"); btn.disabled = false; }
+      });
+
+      try { products = (await API.admin.products()).products || []; } catch { products = []; }
+      await loadSettings();
+      await load();
+    });
+  </script>
+</body>
+</html>
