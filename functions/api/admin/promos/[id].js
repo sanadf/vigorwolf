@@ -2,7 +2,7 @@
 // DELETE /api/admin/promos/:id  -> delete a promo code (usage ledger is kept)
 import { ok, fail, readJson } from "../../_lib/http.js";
 import { requireAdmin } from "../../_lib/auth.js";
-import { normalizeCode, PROMO_TYPES } from "../../_lib/promo.js";
+import { normalizeCode, PROMO_TYPES, promoColumnSet } from "../../_lib/promo.js";
 
 const MAP = {
   code: ["code", (v) => normalizeCode(v)],
@@ -20,15 +20,19 @@ const MAP = {
   maxDiscountAmount: ["max_discount_amount", (v) => Number(v) || 0],
   productIds: ["product_ids", (v) => JSON.stringify(Array.isArray(v) ? v.map((x) => Number(x)).filter(Boolean) : [])],
   firstOrderOnly: ["first_order_only", (v) => (v ? 1 : 0)],
+  freeShipping: ["free_shipping", (v) => (v ? 1 : 0)],
 };
 
 export async function onRequestPatch(context) {
   const { env, params } = context;
   if (!(await requireAdmin(context))) return fail("Unauthorized", 401);
   const b = await readJson(context.request);
+  // Skip free_shipping if migration 0011 hasn't added the column yet.
+  const hasFreeShip = (await promoColumnSet(env)).has("free_shipping");
   const sets = [], binds = [];
   for (const [k, v] of Object.entries(b)) {
     if (!MAP[k]) continue;
+    if (k === "freeShipping" && !hasFreeShip) continue;
     sets.push(`${MAP[k][0]} = ?`); binds.push(MAP[k][1](v));
   }
   if (!sets.length) return fail("No valid fields to update.");

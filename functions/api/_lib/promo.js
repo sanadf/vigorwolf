@@ -19,6 +19,7 @@ export function serializePromo(row) {
     description: row.description || "",
     discountType: row.discount_type,
     discountValue: row.discount_value,
+    freeShipping: !!row.free_shipping,
     active: !!row.active,
     startsAt: row.starts_at || "",
     expiresAt: row.expires_at || "",
@@ -32,6 +33,15 @@ export function serializePromo(row) {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+// Which columns actually exist on promo_codes (so admin writes degrade
+// gracefully if migration 0011's free_shipping column isn't present yet).
+export async function promoColumnSet(env) {
+  try {
+    const { results } = await env.DB.prepare("PRAGMA table_info(promo_codes)").all();
+    return new Set((results || []).map((r) => r.name));
+  } catch { return new Set(); }
 }
 
 export async function getPromoByCode(env, code) {
@@ -106,11 +116,8 @@ export async function validateAndComputePromo(env, { code, subtotal, items = [],
   }
 
   let discountAmount = 0;
-  let freeDelivery = false;
 
-  if (type === "free_delivery") {
-    freeDelivery = true;
-  } else if (type === "percentage") {
+  if (type === "percentage") {
     discountAmount = eligibleBase * (Math.max(0, promo.discount_value) / 100);
   } else if (type === "fixed") {
     discountAmount = Math.min(Math.max(0, promo.discount_value), eligibleBase);
@@ -121,12 +128,13 @@ export async function validateAndComputePromo(env, { code, subtotal, items = [],
   // Never discount more than the subtotal (no negative subtotal).
   discountAmount = round2(Math.min(discountAmount, subtotal));
 
-  return {
-    valid: true,
-    message: freeDelivery ? "Free delivery applied." : "Promo code applied.",
-    promo,
-    discountType: type,
-    discountAmount,
-    freeDelivery,
-  };
+  // Free delivery when the type IS free_delivery, or the independent
+  // free_shipping flag is set (e.g. an influencer code = discount + free ship).
+  const freeDelivery = type === "free_delivery" || !!promo.free_shipping;
+
+  const message = discountAmount > 0 && freeDelivery ? "Promo applied — discount + free delivery."
+    : freeDelivery ? "Free delivery applied."
+    : "Promo code applied.";
+
+  return { valid: true, message, promo, discountType: type, discountAmount, freeDelivery };
 }

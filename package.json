@@ -29,6 +29,8 @@
     "db:fix-auth:local": "wrangler d1 execute vigorwolf-db --local --file=./migrations/0009_fix_user_password_hash.sql",
     "db:promo:remote": "wrangler d1 execute vigorwolf-db --remote --file=./migrations/0010_promo_and_delivery.sql",
     "db:promo:local": "wrangler d1 execute vigorwolf-db --local --file=./migrations/0010_promo_and_delivery.sql",
+    "db:promo-ship:remote": "wrangler d1 execute vigorwolf-db --remote --file=./migrations/0011_promo_free_shipping.sql",
+    "db:promo-ship:local": "wrangler d1 execute vigorwolf-db --local --file=./migrations/0011_promo_free_shipping.sql",
     "user:reset:remote": "node scripts/user-reset.mjs --remote",
     "user:reset:local": "node scripts/user-reset.mjs --local",
     "user:debug:remote": "node scripts/user-debug.mjs --remote",

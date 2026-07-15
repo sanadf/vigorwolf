@@ -73,6 +73,7 @@
           <div class="field"><label>Value <span class="text-muted">(% or JD; ignored for free delivery)</span></label><input class="input" name="discountValue" type="number" step="0.01" value="0"></div>
           <div class="field"><label>Max discount cap (JD) <span class="text-muted">(0 = none)</span></label><input class="input" name="maxDiscountAmount" type="number" step="0.01" value="0"></div>
         </div>
+        <label class="checkline"><input type="checkbox" name="freeShipping"> Also give free delivery <span class="text-muted">(combine with a % or JD discount, e.g. an influencer code)</span></label>
         <div class="form-2col">
           <div class="field"><label>Campaign name</label><input class="input" name="campaignName" placeholder="Summer 2026"></div>
           <div class="field"><label>Influencer name</label><input class="input" name="influencerName" placeholder="@handle"></div>
@@ -144,7 +145,7 @@
             <tr>
               <td class="mono"><b>${ADMIN.esc(p.code)}</b></td>
               <td style="font-size:.8rem">${ADMIN.esc(p.campaignName || "—")}${p.influencerName ? `<br><span class="text-muted">${ADMIN.esc(p.influencerName)}</span>` : ""}</td>
-              <td>${typeLabel(p.discountType)}</td>
+              <td>${typeLabel(p.discountType)}${p.freeShipping && p.discountType !== "free_delivery" ? '<br><span class="text-muted" style="font-size:.72rem">+ free delivery</span>' : ""}</td>
               <td class="mono">${valueLabel(p)}</td>
               <td class="mono" style="font-size:.72rem">${(p.startsAt || "—").slice(0,10)} → ${(p.expiresAt || "—").slice(0,10)}</td>
               <td class="mono">${p.usedCount}${p.maxUses ? " / " + p.maxUses : ""}</td>
@@ -174,6 +175,7 @@
           form.influencerName.value = p.influencerName; form.minOrderAmount.value = p.minOrderAmount;
           form.maxUses.value = p.maxUses; form.perCustomerLimit.value = p.perCustomerLimit;
           form.firstOrderOnly.checked = !!p.firstOrderOnly;
+          form.freeShipping.checked = !!p.freeShipping;
           form.startsAt.value = (p.startsAt || "").slice(0, 10); form.expiresAt.value = (p.expiresAt || "").slice(0, 10);
           form.active.checked = !!p.active;
         }
@@ -205,7 +207,8 @@
           maxDiscountAmount: form.maxDiscountAmount.value, campaignName: form.campaignName.value.trim(),
           influencerName: form.influencerName.value.trim(), minOrderAmount: form.minOrderAmount.value,
           maxUses: form.maxUses.value, perCustomerLimit: form.perCustomerLimit.value,
-          firstOrderOnly: form.firstOrderOnly.checked, startsAt: form.startsAt.value, expiresAt: form.expiresAt.value,
+          firstOrderOnly: form.firstOrderOnly.checked, freeShipping: form.freeShipping.checked,
+          startsAt: form.startsAt.value, expiresAt: form.expiresAt.value,
           productIds, active: form.active.checked,
         };
         try {

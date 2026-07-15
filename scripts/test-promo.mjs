@@ -52,6 +52,10 @@ const migClean = mig.split("\n").map((l) => { const i = l.indexOf("--"); return 
 for (const stmt of migClean.split(";").map((s) => s.trim()).filter(Boolean)) {
   sqlite.exec(stmt + ";");
 }
+// Apply 0011 (free_shipping flag) too.
+const mig11 = readFileSync(new URL("../migrations/0011_promo_free_shipping.sql", import.meta.url), "utf8")
+  .split("\n").map((l) => { const i = l.indexOf("--"); return i >= 0 ? l.slice(0, i) : l; }).join("\n");
+for (const stmt of mig11.split(";").map((s) => s.trim()).filter(Boolean)) sqlite.exec(stmt + ";");
 
 // migration sanity
 {
@@ -69,15 +73,15 @@ function insertPromo(row) {
   const d = {
     code: "X", campaign_name: "", influencer_name: "", description: "", discount_type: "percentage",
     discount_value: 0, active: 1, starts_at: "", expires_at: "", max_uses: 0, per_customer_limit: 0,
-    min_order_amount: 0, max_discount_amount: 0, product_ids: "[]", first_order_only: 0, used_count: 0, ...row,
+    min_order_amount: 0, max_discount_amount: 0, product_ids: "[]", first_order_only: 0, free_shipping: 0, used_count: 0, ...row,
   };
   sqlite.prepare(`INSERT INTO promo_codes
     (code,campaign_name,influencer_name,description,discount_type,discount_value,active,starts_at,expires_at,
-     max_uses,per_customer_limit,min_order_amount,max_discount_amount,product_ids,first_order_only,used_count)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
+     max_uses,per_customer_limit,min_order_amount,max_discount_amount,product_ids,first_order_only,free_shipping,used_count)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`).run(
     d.code, d.campaign_name, d.influencer_name, d.description, d.discount_type, d.discount_value, d.active,
     d.starts_at, d.expires_at, d.max_uses, d.per_customer_limit, d.min_order_amount, d.max_discount_amount,
-    d.product_ids, d.first_order_only, d.used_count);
+    d.product_ids, d.first_order_only, d.free_shipping, d.used_count);
 }
 const iso = (deltaMs) => new Date(Date.now() + deltaMs).toISOString();
 
@@ -98,6 +102,12 @@ const iso = (deltaMs) => new Date(Date.now() + deltaMs).toISOString();
   insertPromo({ code: "FREESHIP", discount_type: "free_delivery" });
   r = await validateAndComputePromo(env, { code: "FREESHIP", subtotal: 30, items: items1, email: "a@x.com" });
   r.valid && r.freeDelivery && r.discountAmount === 0 ? ok("free-delivery code sets freeDelivery, 0 item discount") : no("free_delivery", JSON.stringify(r));
+
+  // 3b) combined: percentage discount + free_shipping flag (influencer code)
+  insertPromo({ code: "INFLU10", discount_type: "percentage", discount_value: 10, free_shipping: 1 });
+  r = await validateAndComputePromo(env, { code: "INFLU10", subtotal: 30, items: items1, email: "a@x.com" });
+  r.valid && r.discountAmount === 3 && r.freeDelivery
+    ? ok("combined code: % discount AND free delivery together") : no("combined discount+freeship", JSON.stringify(r));
 
   // 4) mixed case + surrounding spaces
   r = await validateAndComputePromo(env, { code: "  save10  ", subtotal: 30, items: items1, email: "a@x.com" });
